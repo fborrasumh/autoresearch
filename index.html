@@ -190,6 +190,7 @@ textarea{resize:vertical;min-height:68px}
   <div class="ni-item" id="nav-run" onclick="showTab('run')"><span class="ni">▶️</span> Ejecutar loop</div>
   <div class="ni-item" id="nav-results" onclick="showTab('results')"><span class="ni">📊</span> Resultados</div>
   <div class="ni-item" id="nav-doc" onclick="showTab('doc')"><span class="ni">📄</span> Documento final</div>
+  <div class="ni-item" id="nav-agents" onclick="showTab('agents')"><span class="ni">🤖</span> Agentes &amp; Prompts</div>
   <div class="snav">Recursos</div>
   <div class="ni-item" onclick="window.open('https://platform.openai.com/api-keys','_blank')"><span class="ni">🔑</span> Obtener API Key</div>
   <div class="ni-item" onclick="window.open('https://github.com/karpathy/autoresearch','_blank')"><span class="ni">📚</span> karpathy/autoresearch</div>
@@ -221,6 +222,7 @@ textarea{resize:vertical;min-height:68px}
     <div class="tab" id="tab-run" onclick="showTab('run')">▶ Ejecutar</div>
     <div class="tab" id="tab-results" onclick="showTab('results')">📊 Resultados <span id="resultsBadge" class="tab-badge" style="display:none"></span></div>
     <div class="tab" id="tab-doc" onclick="showTab('doc')">📄 Documento</div>
+    <div class="tab" id="tab-agents" onclick="showTab('agents')">🤖 Agentes</div>
   </div>
 
   <!-- ══ TAB: CONFIGURACIÓN ══ -->
@@ -317,14 +319,14 @@ textarea{resize:vertical;min-height:68px}
 
     <div class="sh" style="margin-top:0">⚡ Rúbricas predefinidas</div>
     <div class="rubric-presets" id="rubricPresets">
-      <div class="rp-card selected" id="rp-A" onclick="applyPreset('A')"><div class="rp-icon">🎓</div><div class="rp-name">Memoria académica</div><div class="rp-obj">obj: 8.5</div></div>
-      <div class="rp-card" id="rp-B" onclick="applyPreset('B')"><div class="rp-icon">🔬</div><div class="rp-name">Propuesta / Grant</div><div class="rp-obj">obj: 8.0</div></div>
-      <div class="rp-card" id="rp-C" onclick="applyPreset('C')"><div class="rp-icon">📊</div><div class="rp-name">Informe técnico</div><div class="rp-obj">obj: 8.5</div></div>
-      <div class="rp-card" id="rp-D" onclick="applyPreset('D')"><div class="rp-icon">⚖️</div><div class="rp-name">Contrato / Convenio</div><div class="rp-obj">obj: 9.0</div></div>
-      <div class="rp-card" id="rp-E" onclick="applyPreset('E')"><div class="rp-icon">📝</div><div class="rp-name">Artículo investigación</div><div class="rp-obj">obj: 8.0</div></div>
-      <div class="rp-card" id="rp-F" onclick="applyPreset('F')"><div class="rp-icon">💼</div><div class="rp-name">Plan de negocio</div><div class="rp-obj">obj: 8.0</div></div>
-      <div class="rp-card" id="rp-G" onclick="applyPreset('G')"><div class="rp-icon">💻</div><div class="rp-name">Documentación SW</div><div class="rp-obj">obj: 8.5</div></div>
-      <div class="rp-card" id="rp-Z" onclick="applyPreset('Z')"><div class="rp-icon">✏️</div><div class="rp-name">Personalizada</div><div class="rp-obj">desde cero</div></div>
+      <div class="rp-card selected" id="rp-A" onclick="applyPreset('A')"><div class="rp-icon">🎓</div><div class="rp-name">Memoria académica</div></div>
+      <div class="rp-card" id="rp-B" onclick="applyPreset('B')"><div class="rp-icon">🔬</div><div class="rp-name">Propuesta / Grant</div></div>
+      <div class="rp-card" id="rp-C" onclick="applyPreset('C')"><div class="rp-icon">📊</div><div class="rp-name">Informe técnico</div></div>
+      <div class="rp-card" id="rp-D" onclick="applyPreset('D')"><div class="rp-icon">⚖️</div><div class="rp-name">Contrato / Convenio</div></div>
+      <div class="rp-card" id="rp-E" onclick="applyPreset('E')"><div class="rp-icon">📝</div><div class="rp-name">Artículo investigación</div></div>
+      <div class="rp-card" id="rp-F" onclick="applyPreset('F')"><div class="rp-icon">💼</div><div class="rp-name">Plan de negocio</div></div>
+      <div class="rp-card" id="rp-G" onclick="applyPreset('G')"><div class="rp-icon">💻</div><div class="rp-name">Documentación SW</div></div>
+      <div class="rp-card" id="rp-Z" onclick="applyPreset('Z')"><div class="rp-icon">✏️</div><div class="rp-name">Personalizada</div></div>
     </div>
 
     <div class="sh">📐 Criterios de evaluación <button onclick="addCriterion()">+ Añadir criterio</button></div>
@@ -359,8 +361,8 @@ textarea{resize:vertical;min-height:68px}
       <div id="progressSteps"></div>
       <div class="prog-bar-wrap"><div class="prog-fill" id="progFill"></div></div>
       <div class="log-wrap">
-        <div class="log-toggle" onclick="document.getElementById('runLog').classList.toggle('open');this.querySelector('.lt').textContent=document.getElementById('runLog').classList.contains('open')?'▲ Ocultar log':'▼ Ver log">
-          <span class="lt">▼ Ver log</span>
+        <div class="log-toggle" id="logToggleBtn" onclick="toggleLog()">
+          <span id="logToggleTxt">▼ Ver log</span>
         </div>
         <div class="log" id="runLog"></div>
       </div>
@@ -386,6 +388,61 @@ textarea{resize:vertical;min-height:68px}
     </div>
   </div>
 
+
+  <!-- ══ TAB: AGENTES & PROMPTS ══ -->
+  <div class="tc content" id="tc-agents">
+
+    <div class="ibox">🤖 <span>Estos son los prompts exactos que reciben los agentes de IA. Puedes editarlos para ajustar el comportamiento del loop. Los cambios se aplican en la siguiente ejecución. Usa <code style="color:var(--accent)">{VARIABLE}</code> para las variables dinámicas.</span></div>
+
+    <div class="sh" style="margin-top:0">Agente 1 — Evaluador <span style="font-size:10px;font-weight:400;color:var(--t3);text-transform:none;margin-left:8px">Evalúa el documento y puntúa cada criterio de la rúbrica</span>
+      <button onclick="resetPrompt('eval')">↺ Restaurar</button>
+    </div>
+    <div style="margin-bottom:6px;font-size:11px;color:var(--t3)">Variables disponibles: <code style="color:var(--accent)">{CRITERIOS}</code> · <code style="color:var(--accent)">{DOCUMENTO}</code></div>
+    <div class="field">
+      <label>System prompt del evaluador</label>
+      <textarea id="promptEvalSystem" style="min-height:52px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>User prompt del evaluador</label>
+      <textarea id="promptEvalUser" style="min-height:160px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+    <div style="margin-top:6px;background:#f7f8fa;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--t3)">
+      <strong>Formato de respuesta esperado (no modificar):</strong><br>
+      <code>{"scores":{"C1":X,"C2":X,...},"score_total":X,"criterio_mas_bajo":"CX","razon_mas_bajo":"una frase"}</code>
+    </div>
+
+    <div class="sh">Agente 2 — Experimentador <span style="font-size:10px;font-weight:400;color:var(--t3);text-transform:none;margin-left:8px">Formula hipótesis y aplica el cambio al documento</span>
+      <button onclick="resetPrompt('exp')">↺ Restaurar</button>
+    </div>
+    <div style="margin-bottom:6px;font-size:11px;color:var(--t3)">Variables disponibles: <code style="color:var(--accent)">{SKILL}</code> · <code style="color:var(--accent)">{CRITERIO_BAJO}</code> · <code style="color:var(--accent)">{RAZON}</code> · <code style="color:var(--accent)">{CRITERIOS}</code> · <code style="color:var(--accent)">{HISTORIAL}</code> · <code style="color:var(--accent)">{RESTRICCIONES}</code> · <code style="color:var(--accent)">{DOCUMENTO}</code></div>
+    <div class="field">
+      <label>System prompt del experimentador</label>
+      <textarea id="promptExpSystem" style="min-height:52px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>User prompt del experimentador</label>
+      <textarea id="promptExpUser" style="min-height:220px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+    <div style="margin-top:6px;background:#f7f8fa;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--t3)">
+      <strong>Formato de respuesta esperado (no modificar):</strong><br>
+      <code>{"hipotesis":"...","seccion":"...","documento_mejorado":"texto completo"}</code>
+    </div>
+
+    <div class="sh">Skill AutoImprove (contexto compartido)
+      <button onclick="resetPrompt('skill')">↺ Restaurar</button>
+    </div>
+    <div style="margin-bottom:6px;font-size:11px;color:var(--t3)">Se inyecta en el prompt del experimentador como <code style="color:var(--accent)">{SKILL}</code></div>
+    <div class="field">
+      <textarea id="promptSkill" style="min-height:140px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="savePrompts()">💾 Guardar cambios</button>
+      <button class="btn" onclick="resetPrompt('all')">↺ Restaurar todo</button>
+      <button class="btn btn-success" style="margin-left:auto" onclick="showTab('run')">▶ Ir a ejecutar →</button>
+    </div>
+  </div>
+
 </div><!-- /main -->
 </div><!-- /app -->
 
@@ -403,6 +460,54 @@ let shouldStop = false;
 let currentScore = 0;
 let baselineScore = 0;
 
+const DEFAULT_PROMPTS = {
+  evalSystem: 'Eres un evaluador experto de documentos. Tu tarea es puntuar con precisión y objetividad. Responde SOLO JSON válido, sin markdown ni texto adicional.',
+  evalUser: `Evalúa el documento con esta rúbrica. Puntúa cada criterio de 1.0 a 10.0 (usa un decimal).
+Sé estricto: un 8 significa "sólido pero mejorable", un 10 es "excelente sin defectos".
+
+Responde SOLO este JSON exacto:
+{"scores":{"C1":X,"C2":X,...},"score_total":X,"criterio_mas_bajo":"CX","razon_mas_bajo":"una frase concreta explicando el problema principal"}
+
+CRITERIOS DE LA RÚBRICA:
+{CRITERIOS}
+
+DOCUMENTO A EVALUAR:
+{DOCUMENTO}`,
+  expSystem: 'Eres un agente de mejora documental especializado en el patrón karpathy/autoresearch. Tu tarea es aplicar cambios quirúrgicos y medibles. Responde SOLO JSON válido, sin markdown ni texto adicional.',
+  expUser: `{SKILL}
+
+ESTADO ACTUAL:
+- Criterio más débil: {CRITERIO_BAJO} — {RAZON}
+- Criterios de la rúbrica:
+{CRITERIOS}
+- Experimentos anteriores (últimos 4):
+{HISTORIAL}
+{RESTRICCIONES}
+
+INSTRUCCIONES:
+1. Formula UNA hipótesis concreta y falsable para mejorar {CRITERIO_BAJO}
+2. Aplica SOLO ese cambio al documento (máximo 3 párrafos o secciones)
+3. NO modifiques datos marcados [FIJO]
+4. NO inventes datos marcados [PENDIENTE]
+5. Conserva TODA la estructura y contenido no relacionado con tu hipótesis
+
+Responde SOLO este JSON exacto:
+{"hipotesis":"descripción precisa del cambio aplicado","seccion":"nombre de la sección modificada","documento_mejorado":"el documento COMPLETO con el cambio aplicado"}
+
+DOCUMENTO ACTUAL:
+{DOCUMENTO}`,
+  skill: `AUTOIMPROVE — Loop de Mejora Iterativa (karpathy/autoresearch)
+Principios: un cambio pequeño por experimento, medir, conservar si mejora, revertir si empeora.
+Reglas: máximo 3 párrafos modificados por experimento. No inventar [PENDIENTE]. No tocar datos [FIJO].
+Hipótesis válida: concreta, falsable, apunta a un criterio específico.
+  Ejemplo válido: "El apartado de metodología no cita bibliografía reciente; añadir 2 referencias post-2020 mejorará C2"
+  Ejemplo válido: "Los objetivos usan verbos vagos; reescribir con taxonomía Bloom (analizar, demostrar, diseñar) mejorará C3"
+Hipótesis inválida: "mejorar la redacción en general", "hacer el texto más claro".`
+};
+
+// Runtime prompt state (editable by user)
+let prompts = { ...DEFAULT_PROMPTS };
+
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
@@ -413,8 +518,8 @@ function showTab(id) {
   document.getElementById('tc-' + id).classList.add('active');
   document.getElementById('tab-' + id).classList.add('active');
   document.getElementById('nav-' + id).classList.add('active');
-  const titles = {config:'Configuración',rubric:'Rúbrica de evaluación',run:'Ejecutar loop',results:'Resultados',doc:'Documento final'};
-  const subs = {config:'Sube tu documento y configura el proceso',rubric:'Define los criterios de calidad del documento',run:'Monitoriza el proceso de mejora iterativa',results:'Tabla de experimentos y evolución del score',doc:'Versión mejorada del documento y exportación'};
+  const titles = {config:'Configuración',rubric:'Rúbrica de evaluación',run:'Ejecutar loop',results:'Resultados',doc:'Documento final',agents:'Agentes & Prompts'};
+  const subs = {config:'Sube tu documento y configura el proceso',rubric:'Define los criterios de calidad del documento',run:'Monitoriza el proceso de mejora iterativa',results:'Tabla de experimentos y evolución del score',doc:'Versión mejorada del documento y exportación',agents:'Edita los prompts de los agentes evaluador y experimentador'};
   document.getElementById('topbarTitle').textContent = titles[id] || id;
   document.getElementById('topbarSub').textContent = subs[id] || '';
 }
@@ -635,6 +740,8 @@ function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').re
 
 // Init default preset
 applyPreset('A');
+// Init prompt editors
+initPromptEditors();
 
 // ═══════════════════════════════════════════════
 //  READY CHECK & COST ESTIMATE
@@ -744,27 +851,70 @@ function parseJSON(txt) {
 // ═══════════════════════════════════════════════
 //  SKILL PROMPT
 // ═══════════════════════════════════════════════
-const SKILL = `AUTOIMPROVE — Loop de Mejora Iterativa (karpathy/autoresearch)
-Principios: un cambio pequeño por experimento, medir, conservar si mejora, revertir si empeora.
-Reglas: máximo 3 párrafos modificados por experimento. No inventar [PENDIENTE]. No tocar datos [FIJO].
-Hipótesis válida: concreta, falsable, apunta a un criterio específico.
-Hipótesis inválida: "mejorar la redacción", "hacer más claro".`;
+// ═══════════════════════════════════════════════
+//  LOG TOGGLE (fix: named function avoids 'this' scope bug)
+// ═══════════════════════════════════════════════
+function toggleLog() {
+  const logEl = document.getElementById('runLog');
+  const txtEl = document.getElementById('logToggleTxt');
+  logEl.classList.toggle('open');
+  txtEl.textContent = logEl.classList.contains('open') ? '▲ Ocultar log' : '▼ Ver log';
+}
+
+// ═══════════════════════════════════════════════
+//  DEFAULT PROMPTS
+// ═══════════════════════════════════════════════
+// (prompts declared at top of script)
+
+
+function initPromptEditors() {
+  document.getElementById('promptEvalSystem').value = prompts.evalSystem;
+  document.getElementById('promptEvalUser').value = prompts.evalUser;
+  document.getElementById('promptExpSystem').value = prompts.expSystem;
+  document.getElementById('promptExpUser').value = prompts.expUser;
+  document.getElementById('promptSkill').value = prompts.skill;
+}
+
+function savePrompts() {
+  prompts.evalSystem = document.getElementById('promptEvalSystem').value;
+  prompts.evalUser   = document.getElementById('promptEvalUser').value;
+  prompts.expSystem  = document.getElementById('promptExpSystem').value;
+  prompts.expUser    = document.getElementById('promptExpUser').value;
+  prompts.skill      = document.getElementById('promptSkill').value;
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✅ Guardado'; btn.disabled = true;
+  setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+}
+
+function resetPrompt(which) {
+  if (which === 'all' || which === 'eval') {
+    prompts.evalSystem = DEFAULT_PROMPTS.evalSystem;
+    prompts.evalUser   = DEFAULT_PROMPTS.evalUser;
+    document.getElementById('promptEvalSystem').value = prompts.evalSystem;
+    document.getElementById('promptEvalUser').value   = prompts.evalUser;
+  }
+  if (which === 'all' || which === 'exp') {
+    prompts.expSystem = DEFAULT_PROMPTS.expSystem;
+    prompts.expUser   = DEFAULT_PROMPTS.expUser;
+    document.getElementById('promptExpSystem').value = prompts.expSystem;
+    document.getElementById('promptExpUser').value   = prompts.expUser;
+  }
+  if (which === 'all' || which === 'skill') {
+    prompts.skill = DEFAULT_PROMPTS.skill;
+    document.getElementById('promptSkill').value = prompts.skill;
+  }
+}
 
 // ═══════════════════════════════════════════════
 //  EVALUATE
 // ═══════════════════════════════════════════════
 async function evaluate(text) {
   const critStr = criteria.map(c=>`${c.id} ${c.name} (${c.weight}%): ${c.desc}`).join('\n');
-  const prompt = `Evalúa el documento con esta rúbrica. Puntúa cada criterio de 1.0 a 10.0 (un decimal).
-Responde SOLO JSON sin markdown:
-{"scores":{"C1":X,"C2":X,...},"score_total":X,"criterio_mas_bajo":"CX","razon_mas_bajo":"una frase"}
-
-CRITERIOS:
-${critStr}
-
-DOCUMENTO:
-${text.slice(0,6000)}`;
-  const raw = await callGPT('Eres evaluador experto. Responde SOLO JSON sin markdown ni texto extra.', prompt, 500);
+  const userPrompt = prompts.evalUser
+    .replace('{CRITERIOS}', critStr)
+    .replace('{DOCUMENTO}', text.slice(0, 6000));
+  const raw = await callGPT(prompts.evalSystem, userPrompt, 600);
   const data = parseJSON(raw);
   // Recalculate weighted total
   let total = 0;
@@ -780,25 +930,18 @@ async function generateExperiment(text, evalData, history) {
   const constraints = document.getElementById('constraints').value.trim();
   const histStr = history.slice(-4).map(h=>`EXP_${String(h.exp_id).padStart(3,'0')}: ${h.hipotesis} → ${h.resultado}`).join('\n') || 'Ninguno aún.';
   const critStr = criteria.map(c=>`${c.id} ${c.name} (${c.weight}%): ${c.desc}`).join('\n');
-  const prompt = `${SKILL}
-
-CRITERIO MÁS DÉBIL: ${evalData.criterio_mas_bajo} — ${evalData.razon_mas_bajo}
-CRITERIOS DE LA RÚBRICA:
-${critStr}
-EXPERIMENTOS ANTERIORES (últimos 4):
-${histStr}
-${constraints ? 'RESTRICCIONES (nunca modificar):\n'+constraints : ''}
-
-TAREA: Formula UNA hipótesis concreta para mejorar ${evalData.criterio_mas_bajo}. Aplica SOLO ese cambio (máx 3 párrafos).
-
-Responde SOLO JSON sin markdown:
-{"hipotesis":"descripción concreta del cambio","seccion":"sección modificada","documento_mejorado":"texto completo del documento con el cambio aplicado"}
-
-DOCUMENTO ACTUAL:
-${text}`;
-
-  const maxTok = Math.min(4000, Math.max(1500, Math.floor(text.length/3)));
-  const raw = await callGPT('Eres agente de mejora documental. Responde SOLO JSON sin markdown ni texto extra.', prompt, maxTok);
+  const restriccionesStr = constraints ? 'RESTRICCIONES (nunca modificar):\n' + constraints : '';
+  const userPrompt = prompts.expUser
+    .replace('{SKILL}', prompts.skill)
+    .replace('{CRITERIO_BAJO}', evalData.criterio_mas_bajo)
+    .replace(/\{CRITERIO_BAJO\}/g, evalData.criterio_mas_bajo)
+    .replace('{RAZON}', evalData.razon_mas_bajo)
+    .replace('{CRITERIOS}', critStr)
+    .replace('{HISTORIAL}', histStr)
+    .replace('{RESTRICCIONES}', restriccionesStr)
+    .replace('{DOCUMENTO}', text);
+  const maxTok = Math.min(4000, Math.max(1500, Math.floor(text.length / 3)));
+  const raw = await callGPT(prompts.expSystem, userPrompt, maxTok);
   return parseJSON(raw);
 }
 
