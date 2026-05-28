@@ -494,8 +494,6 @@ INSTRUCCIONES:
 Responde SOLO este JSON exacto:
 {"hipotesis":"descripción precisa del cambio aplicado","seccion":"nombre de la sección modificada","documento_mejorado":"el documento COMPLETO con el cambio aplicado"}
 
-Si el documento es largo, el sistema te pedirá solo "buscar"/"reemplazar" en lugar del documento completo.
-
 DOCUMENTO ACTUAL:
 {DOCUMENTO}`,
   skill: `AUTOIMPROVE — Loop de Mejora Iterativa (karpathy/autoresearch)
@@ -933,48 +931,18 @@ async function generateExperiment(text, evalData, history) {
   const histStr = history.slice(-4).map(h=>`EXP_${String(h.exp_id).padStart(3,'0')}: ${h.hipotesis} → ${h.resultado}`).join('\n') || 'Ninguno aún.';
   const critStr = criteria.map(c=>`${c.id} ${c.name} (${c.weight}%): ${c.desc}`).join('\n');
   const restriccionesStr = constraints ? 'RESTRICCIONES (nunca modificar):\n' + constraints : '';
-
-  // For long docs: ask for a diff (search/replace pairs) instead of the full rewritten document
-  const useDiff = text.length > 6000;
-
-  let userPrompt = prompts.expUser
+  const userPrompt = prompts.expUser
     .replace('{SKILL}', prompts.skill)
     .replace('{CRITERIO_BAJO}', evalData.criterio_mas_bajo)
-    .split('{CRITERIO_BAJO}').join(evalData.criterio_mas_bajo)
+    .replace(/\{CRITERIO_BAJO\}/g, evalData.criterio_mas_bajo)
     .replace('{RAZON}', evalData.razon_mas_bajo)
     .replace('{CRITERIOS}', critStr)
     .replace('{HISTORIAL}', histStr)
     .replace('{RESTRICCIONES}', restriccionesStr)
-    .replace('{DOCUMENTO}', text.slice(0, 12000));
-
-  if (useDiff) {
-    userPrompt = userPrompt.replace(
-      '{"hipotesis":"descripción precisa del cambio aplicado","seccion":"nombre de la sección modificada","documento_mejorado":"el documento COMPLETO con el cambio aplicado"}',
-      `{"hipotesis":"descripción precisa del cambio aplicado","seccion":"nombre de la sección modificada","buscar":"texto EXACTO a reemplazar (máx 400 chars)","reemplazar":"nuevo texto que lo sustituye"}`
-    );
-    userPrompt += '\n\nIMPORTANTE: El documento es largo. Devuelve SOLO los campos "buscar" y "reemplazar" con el fragmento exacto a cambiar, NO el documento completo.';
-  }
-
-  const maxTok = useDiff ? 1200 : Math.min(4000, Math.max(2000, Math.floor(text.length / 2)));
+    .replace('{DOCUMENTO}', text);
+  const maxTok = Math.min(4000, Math.max(1500, Math.floor(text.length / 3)));
   const raw = await callGPT(prompts.expSystem, userPrompt, maxTok);
-  const parsed = parseJSON(raw);
-
-  // Apply diff if needed
-  if (useDiff && parsed.buscar && parsed.reemplazar) {
-    if (text.includes(parsed.buscar)) {
-      parsed.documento_mejorado = text.replace(parsed.buscar, parsed.reemplazar);
-    } else {
-      // Fuzzy fallback: try trimmed version
-      const trimmed = parsed.buscar.trim();
-      if (text.includes(trimmed)) {
-        parsed.documento_mejorado = text.replace(trimmed, parsed.reemplazar);
-      } else {
-        throw new Error('El fragmento "buscar" no se encontró en el documento. Reintentando en el siguiente ciclo.');
-      }
-    }
-  }
-
-  return parsed;
+  return parseJSON(raw);
 }
 
 // ═══════════════════════════════════════════════
