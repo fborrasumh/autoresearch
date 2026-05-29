@@ -864,15 +864,71 @@ async function handleFile(file) {
     log('❌ Error leyendo el archivo: ' + err.message, 'err');
   }
 }
+// Lazy JSZip loader — loads from CDN only when needed
+let _jsZipPromise = null;
+function loadJSZip() {
+  if (typeof JSZip !== 'undefined') return Promise.resolve(JSZip);
+  if (_jsZipPromise) return _jsZipPromise;
+  _jsZipPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload  = () => resolve(JSZip);
+    s.onerror = () => reject(new Error('No se pudo cargar JSZip. Comprueba tu conexión a internet.'));
+    document.head.appendChild(s);
+  });
+  return _jsZipPromise;
+}
+
 async function readDocx(file) {
-  // Simple docx text extraction using ZIP + XML parsing
+  // Load JSZip lazily (only when a .docx is actually uploaded)
+  let JZ;
+  try {
+    JZ = await loadJSZip();
+  } catch(e) {
+    throw new Error(e.message);
+  }
+
   const arrayBuffer = await file.arrayBuffer();
-  const uint8 = new Uint8Array(arrayBuffer);
-  // Find word/document.xml in the zip
-  const text = new TextDecoder('utf-8', {fatal:false}).decode(uint8);
-  // Extract text between <w:t> tags
-  const matches = text.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
-  return matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ').replace(/\s+/g, ' ').trim() || '[No se pudo extraer texto del .docx — intenta con .txt o .md]';
+  let zip;
+  try {
+    zip = await JZ.loadAsync(arrayBuffer);
+  } catch(e) {
+    throw new Error('No se pudo abrir el .docx como ZIP: ' + e.message);
+  }
+
+  // Find word/document.xml (case-insensitive)
+  const allKeys = Object.keys(zip.files);
+  const xmlKey  = allKeys.find(k => k.toLowerCase() === 'word/document.xml');
+  if (!xmlKey) throw new Error('word/document.xml no encontrado en el .docx');
+
+  const xmlStr = await zip.file(xmlKey).async('string');
+
+  // Parse: split by <w:p>, extract <w:t> runs, preserve paragraph breaks
+  const paragraphs = [];
+  const pBlocks = xmlStr.split(/<w:p[ >]/);
+  for (const block of pBlocks) {
+    const runs = [];
+    let pos = 0;
+    while (pos < block.length) {
+      const tStart = block.indexOf('<w:t', pos);
+      if (tStart === -1) break;
+      const tClose = block.indexOf('>', tStart);
+      if (tClose === -1) break;
+      const tEnd = block.indexOf('</w:t>', tClose);
+      if (tEnd === -1) break;
+      const txt = block.slice(tClose + 1, tEnd)
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+        .replace(/&#xA;/g, '\n').replace(/&#x9;/g, '\t');
+      if (txt) runs.push(txt);
+      pos = tEnd + 6;
+    }
+    if (runs.length) paragraphs.push(runs.join(''));
+  }
+
+  const result = paragraphs.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  if (!result) throw new Error('El .docx no contiene texto extraíble (puede ser imagen o estar protegido)');
+  return result;
 }
 async function readPdf(file) {
   // Basic PDF text extraction — reads raw stream
