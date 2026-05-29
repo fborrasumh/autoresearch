@@ -1827,7 +1827,15 @@ ${chunk.slice(0, 4000)}`;
 
   // Weighted score_total (weights are criterion weights, not chunk weights)
   let total = 0;
-  criteria.forEach(c => { total += merged.scores[c.id] * c.weight / 100; });
+  const debugWeights = [];
+  criteria.forEach(c => {
+    const s = merged.scores[c.id] || 0;
+    const w = c.weight;
+    const contrib = s * w / 100;
+    debugWeights.push(`${c.id}:score=${s},w=${w},contrib=${contrib.toFixed(3)}`);
+    total += contrib;
+  });
+  log(`  🔢 Debug scores: ${debugWeights.join(' | ')} | TOTAL=${total.toFixed(3)}`, 'info');
   merged.score_total = Math.min(10, Math.round(total * 100) / 100);
 
   const weakest = criteria.reduce((min, c) =>
