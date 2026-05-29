@@ -1,0 +1,2665 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AutoResearch — Mejora Iterativa de Documentos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#2563eb;--accent-dim:#1d4ed8;
+  --teal:#059669;--teal-dim:#047857;
+  --amber:#d97706;--red:#dc2626;--green:#16a34a;
+  --surface:#f7f8fa;--s2:#ffffff;--s3:#f3f4f6;
+  --border:#e5e7eb;--bhi:#d1d5db;
+  --text:#111827;--t2:#4b5563;--t3:#9ca3af;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --ff:'DM Sans',system-ui,sans-serif;
+  --serif:'DM Serif Display',Georgia,serif;
+  --r:8px;--rl:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff);background:var(--surface);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.app{display:flex;min-height:100vh}
+.sidebar{width:255px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--teal));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.logo h1{font-family:var(--serif);font-size:17px;color:var(--text);font-weight:400}
+.logo span{font-size:10px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase}
+.snav{padding:16px 18px 6px;font-size:10px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;font-weight:500}
+.ni-item{display:flex;align-items:center;gap:9px;padding:8px 18px;font-size:13px;color:var(--t2);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.ni-item:hover{background:#f3f4f6;color:var(--text)}
+.ni-item.active{background:#eff6ff;color:var(--accent);border-left-color:var(--accent)}
+.ni-item .ni{font-size:14px;width:17px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:14px 18px;border-top:1px solid var(--border);background:#fafafa}
+.user-row{display:flex;align-items:center;gap:9px}
+.avatar{width:30px;height:30px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--accent);border:1px solid #bfdbfe}
+.un{font-size:13px;color:var(--text);font-weight:500}.up{font-size:11px;color:var(--t3)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 28px;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:20;gap:12px}
+.topbar h2{font-family:var(--serif);font-size:18px;font-weight:400;color:var(--text);white-space:nowrap}
+.topbar p{font-size:11px;color:var(--t3);margin-top:1px}
+.topbar-actions{display:flex;gap:8px;flex-shrink:0}
+button{font-family:var(--ff);cursor:pointer;border:none;transition:all .15s}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:13px;border-radius:var(--r);border:1px solid var(--bhi);background:transparent;color:var(--t2)}
+.btn:hover{background:#f3f4f6;color:var(--text)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--teal));border-color:var(--accent);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--accent-dim);background:linear-gradient(135deg,var(--accent-dim),var(--teal-dim))}
+.btn-danger{border-color:rgba(220,38,38,.4);color:var(--red)}
+.btn-danger:hover{background:rgba(220,38,38,.08)}
+.btn-success{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-success:hover:not(:disabled){background:var(--teal-dim)}
+.btn-stop{background:transparent;border:1px solid rgba(220,38,38,.5);color:var(--red)}
+.btn-stop:hover:not(:disabled){background:rgba(220,38,38,.08);border-color:var(--red)}
+.btn-stop:disabled{opacity:.35;cursor:not-allowed}
+.btn-sm{padding:4px 10px;font-size:12px}
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 28px;background:#fff;overflow-x:auto;flex-shrink:0}
+.tab{padding:11px 14px;font-size:13px;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:5px;margin-bottom:-1px}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-badge{width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block}
+.tc{display:none}.tc.active{display:block}
+.content{padding:24px 28px;flex:1;overflow-y:auto}
+.apikey-panel{background:#eff6ff;border:1px solid #d1d5db;border-radius:var(--rl);padding:16px 20px;margin-bottom:20px}
+.apikey-header{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.apikey-header h3{font-size:14px;font-weight:500;color:var(--text)}
+.apikey-body{display:flex;gap:8px;align-items:flex-end}
+.apikey-body .field{flex:1}
+.privacy-note{font-size:11px;color:var(--teal);margin-top:6px;display:flex;align-items:center;gap:5px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px}
+label{font-size:12px;color:var(--t2);font-weight:500;display:flex;align-items:center;gap:5px}
+.req{color:var(--red)}
+input[type=text],input[type=password],input[type=number],select,textarea{width:100%;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:8px 11px;font-size:13px;color:var(--text);font-family:var(--ff);transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:28px}
+textarea{resize:vertical;min-height:68px}
+.hint{font-size:10px;color:var(--t3);margin-top:3px}
+.sh{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:11px;margin-top:22px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}
+.sh:first-child{margin-top:0}
+.sh button{margin-left:auto;font-size:11px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:var(--ff);padding:0}
+.sh button:hover{text-decoration:underline}
+.divider{height:1px;background:var(--border);margin:18px 0}
+/* Wizard steps */
+.wizard-steps{display:flex;gap:0;margin-bottom:28px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);background:#f3f4f6}
+.wstep{flex:1;padding:12px 8px;text-align:center;font-size:12px;color:var(--t3);background:#f7f8fa;border-right:1px solid var(--border);cursor:pointer;transition:all .2s}
+.wstep:last-child{border-right:none}
+.wstep.active{background:#eff6ff;color:var(--accent)}
+.wstep.done{background:#f0fdf4;color:var(--teal)}
+.wstep-num{width:20px;height:20px;border-radius:50%;background:currentColor;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;opacity:.7}
+.wstep.active .wstep-num,.wstep.done .wstep-num{opacity:1}
+.wizard-panel{display:none}.wizard-panel.active{display:block}
+.wizard-nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border)}
+/* Upload zone */
+.upload-zone{border:2px dashed var(--bhi);border-radius:var(--rl);padding:36px;text-align:center;cursor:pointer;transition:all .2s;background:#fff}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:#eff6ff}
+.upload-zone.has-file{border-color:var(--teal);background:#f0fdf4;border-style:solid}
+.upload-icon{font-size:36px;margin-bottom:10px}
+.upload-zone h3{font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px}
+.upload-zone p{font-size:12px;color:var(--t3)}
+.file-pill{display:inline-flex;align-items:center;gap:8px;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:500;margin-top:10px}
+/* Rúbrica */
+.rubric-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.rp-card{background:#fff;border:2px solid var(--border);border-radius:var(--r);padding:10px;cursor:pointer;transition:all .2s;text-align:center}
+.rp-card:hover{border-color:var(--bhi)}
+.rp-card.selected{border-color:var(--accent);background:#eff6ff}
+.rp-icon{font-size:20px;margin-bottom:4px}
+.rp-name{font-size:11px;font-weight:500;color:var(--text)}
+.rp-obj{font-size:10px;color:var(--t3);margin-top:2px}
+/* Criteria builder */
+.criteria-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.crit-row{display:grid;grid-template-columns:1fr 60px 1fr auto;gap:8px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.crit-row input{padding:5px 8px;font-size:12px}
+.crit-del{width:28px;height:28px;border-radius:6px;border:1px solid rgba(220,38,38,.3);color:var(--red);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .15s}
+.crit-del:hover{background:rgba(220,38,38,.08)}
+.weight-total{font-size:12px;font-weight:500;padding:6px 12px;border-radius:var(--r);display:inline-flex;align-items:center;gap:5px}
+.wt-ok{background:#f0fdf4;color:var(--teal);border:1px solid #bbf7d0}
+.wt-warn{background:#fef9c3;color:var(--amber);border:1px solid #fde68a}
+/* Progress */
+.human-progress{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:14px;display:none}
+.human-progress.v{display:block}
+.hp-step{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.hp-step:last-child{margin-bottom:0}
+.hp-dot{width:8px;height:8px;border-radius:50%;background:#d1d5db;flex-shrink:0}
+.hp-dot.done{background:var(--teal)}.hp-dot.active{background:linear-gradient(135deg,var(--accent),var(--teal))}
+.hp-text{font-size:13px;color:var(--t3)}.hp-text.done{color:var(--teal)}.hp-text.active{color:var(--text)}
+.prog-bar-wrap{height:3px;background:#e5e7eb;border-radius:2px;margin-top:12px}
+.prog-fill{height:100%;background:linear-gradient(135deg,var(--accent),var(--teal));border-radius:2px;transition:width .5s ease;width:0%}
+.log-wrap{margin-top:10px}
+.log-toggle{font-size:11px;color:var(--t3);cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 0;user-select:none}
+.log-toggle:hover{color:var(--t2)}
+.log{background:#f7f8fa;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:11px;max-height:160px;overflow-y:auto;color:var(--t2);font-family:'Courier New',monospace;display:none}
+.log.open{display:block}
+.ll{padding:1px 0}.ll.ok{color:var(--teal)}.ll.info{color:var(--accent)}.ll.warn{color:var(--amber)}.ll.err{color:var(--red)}
+/* Results table */
+.results-table-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--rl);overflow:auto;box-shadow:var(--shadow);margin-bottom:16px}
+.rt{width:100%;border-collapse:collapse;font-size:12px}
+.rt th{text-align:left;padding:8px 11px;color:var(--t3);font-weight:500;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.06em;background:#f7f8fa;white-space:nowrap}
+.rt td{padding:7px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+.rt tr:last-child td{border-bottom:none}
+.rt tr.row-kept td{background:#f0fdf4}
+.rt tr.row-rev td{background:#fef9c3}
+.rt tr.row-base td{background:#f8fafc}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.b-kept{background:#dcfce7;color:#16a34a}.b-rev{background:#fef9c3;color:#92400e}.b-base{background:#e0e7ff;color:#3730a3}
+/* Score bar */
+.score-bar-wrap{height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:4px}
+.score-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:3px;transition:width .5s}
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;box-shadow:var(--shadow)}
+.sv{font-size:22px;font-weight:500;color:var(--accent);font-family:var(--serif)}
+.sl{font-size:11px;color:var(--t3);margin-top:1px}
+/* Output doc */
+.doc-area{background:#fff;border:1px solid var(--border);border-radius:var(--rl);padding:24px 28px;font-size:14px;box-shadow:var(--shadow);line-height:1.8;min-height:200px;white-space:pre-wrap;word-wrap:break-word}
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:240px;color:var(--t3);gap:9px;text-align:center}
+.placeholder .bi{font-size:36px}
+.placeholder p{font-size:13px;max-width:260px;line-height:1.6}
+.export-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.ibox{background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--r);padding:9px 13px;font-size:12px;color:var(--t2);display:flex;align-items:flex-start;gap:7px;margin-bottom:14px}
+.cost-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.cost-item{display:flex;flex-direction:column;gap:2px}
+.cost-val{font-size:18px;font-weight:500;color:var(--teal);font-family:var(--serif)}
+.cost-lbl{font-size:10px;color:var(--t3)}
+.cost-sep{width:1px;height:36px;background:var(--border)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}.pulsing{animation:pulse 1.5s infinite}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}.fi{animation:fi .3s ease}
+@keyframes spin{to{transform:rotate(360deg)}}.spinning{animation:spin 1s linear infinite}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:#f3f4f6}::-webkit-scrollbar-thumb{background:var(--bhi);border-radius:2px}
+@media(max-width:860px){.sidebar{display:none}.topbar,.content{padding-left:16px;padding-right:16px}.form-grid,.rubric-presets{grid-template-columns:1fr 1fr}.stats-row{grid-template-columns:1fr 1fr}}
+  /* M3: Chart */
+  .chart-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--rl);padding:16px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+  canvas#scoreChart{display:block;max-width:100%}
+  /* M6: Radar chart */
+  .radar-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--rl);padding:16px 20px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+  .radar-canvas-wrap{flex-shrink:0}
+  .radar-legend{flex:1;min-width:160px;font-size:12px}
+  .rl-item{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)}
+  .rl-item:last-child{border-bottom:none}
+  .rl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  /* M7: Diff */
+  .diff-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--rl);padding:20px 24px;font-size:13px;line-height:1.8;font-family:monospace;white-space:pre-wrap;word-break:break-word;max-height:480px;overflow-y:auto}
+  .diff-add{background:#dcfce7;color:#15803d}.diff-del{background:#fee2e2;color:#b91c1c;text-decoration:line-through}.diff-same{color:var(--t2)}
+  .diff-tabs{display:flex;gap:0;margin-bottom:14px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+  .diff-tab{flex:1;padding:7px 10px;text-align:center;font-size:12px;cursor:pointer;background:#f7f8fa;color:var(--t3);border-right:1px solid var(--border);transition:all .15s}
+  .diff-tab:last-child{border-right:none}.diff-tab.active{background:#eff6ff;color:var(--accent)}
+  /* Search results */
+  .search-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;transition:box-shadow .15s}
+  .search-card:hover{box-shadow:var(--shadow-md)}
+  .sc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .sc-query{font-size:12px;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:6px}
+  .sc-meta{font-size:10px;color:var(--t3);white-space:nowrap}
+  .sc-source{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500;margin-right:4px;margin-bottom:4px}
+  .sc-academic{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+  .sc-web{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+  .sc-result{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}
+  .sr-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:2px}
+  .sr-snippet{font-size:11px;color:var(--t2);line-height:1.5}
+  .sr-url{font-size:10px;color:var(--t3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .search-stats{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--t2);display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px}
+  .ss-item{display:flex;flex-direction:column;gap:2px}
+  .ss-val{font-size:16px;font-weight:600;color:var(--teal)}
+  .ss-lbl{font-size:10px;color:var(--t3)}
+  /* M5: session banner */
+  .session-banner{background:#fef9c3;border:1px solid #fde68a;border-radius:var(--r);padding:10px 14px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-row">
+      <div class="logo-icon">🔄</div>
+      <div><h1>AutoResearch</h1><span>Mejora iterativa</span></div>
+    </div>
+  </div>
+  <div class="snav">Flujo</div>
+  <div class="ni-item active" id="nav-config" onclick="showTab('config')"><span class="ni">⚙️</span> Configuración</div>
+  <div class="ni-item" id="nav-rubric" onclick="showTab('rubric')"><span class="ni">📋</span> Rúbrica</div>
+  <div class="ni-item" id="nav-run" onclick="showTab('run')"><span class="ni">▶️</span> Ejecutar loop</div>
+  <div class="ni-item" id="nav-results" onclick="showTab('results')"><span class="ni">📊</span> Resultados</div>
+  <div class="ni-item" id="nav-doc" onclick="showTab('doc')"><span class="ni">📄</span> Documento final</div>
+  <div class="ni-item" id="nav-agents" onclick="showTab('agents')"><span class="ni">🤖</span> Agentes &amp; Prompts</div>
+  <div class="ni-item" id="nav-search" onclick="showTab('search')"><span class="ni">🔍</span> Búsquedas</div>
+  <div class="snav">Recursos</div>
+  <div class="ni-item" onclick="window.open('https://platform.openai.com/api-keys','_blank')"><span class="ni">🔑</span> Obtener API Key</div>
+  <div class="ni-item" onclick="window.open('https://github.com/karpathy/autoresearch','_blank')"><span class="ni">📚</span> karpathy/autoresearch</div>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="avatar" id="avI">--</div>
+      <div><div class="un" id="avL">Sin configurar</div><div class="up">key local · nunca compartida</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <div class="topbar">
+    <div>
+      <h2 id="topbarTitle">Configuración</h2>
+      <p id="topbarSub">Sube tu documento y configura el proceso de mejora</p>
+    </div>
+    <div id="liveCost" style="font-size:11px;color:var(--t3);white-space:nowrap">0 llamadas · 0 tokens · $0.0000</div>
+    <div class="topbar-actions">
+      <button class="btn btn-stop" id="btnStop" onclick="stopLoop()" disabled>⏹ Detener</button>
+      <button class="btn btn-primary" id="btnRun" onclick="startLoop()" disabled>▶ Iniciar mejora</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-config" onclick="showTab('config')">⚙️ Configuración</div>
+    <div class="tab" id="tab-rubric" onclick="showTab('rubric')">📋 Rúbrica</div>
+    <div class="tab" id="tab-run" onclick="showTab('run')">▶ Ejecutar</div>
+    <div class="tab" id="tab-results" onclick="showTab('results')">📊 Resultados <span id="resultsBadge" class="tab-badge" style="display:none"></span></div>
+    <div class="tab" id="tab-doc" onclick="showTab('doc')">📄 Documento</div>
+    <div class="tab" id="tab-agents" onclick="showTab('agents')">🤖 Agentes</div>
+    <div class="tab" id="tab-search" onclick="showTab('search')">🔍 Búsquedas <span id="searchBadge" class="tab-badge" style="display:none"></span></div>
+  </div>
+
+  <!-- ══ TAB: CONFIGURACIÓN ══ -->
+  <div class="tc active content" id="tc-config">
+
+    <div id="sessionBanner" style="display:none" class="session-banner">
+      🕐 <span id="sessionMsg">Hay una sesión guardada</span>
+      <button class="btn btn-sm" style="margin-left:auto" onclick="restoreSession()">Restaurar sesión</button>
+      <button class="btn btn-sm btn-danger" onclick="clearSession();document.getElementById('sessionBanner').style.display='none'">Descartar</button>
+    </div>
+    <div class="apikey-panel">
+      <div class="apikey-header">
+        <span style="font-size:17px">🔑</span>
+        <h3>OpenAI API Key</h3>
+        <span style="margin-left:auto;font-size:11px;background:rgba(15,168,138,.15);color:var(--teal);padding:3px 9px;border-radius:20px;border:1px solid rgba(15,168,138,.3)">🔒 Solo en tu navegador</span>
+      </div>
+      <div class="apikey-body">
+        <div class="field" style="flex:1">
+          <label>API Key <span class="req">*</span></label>
+          <input type="password" id="apiKey" placeholder="sk-..." oninput="onKeyChange()">
+        </div>
+        <button class="btn" onclick="toggleKeyVis()">👁</button>
+        <button class="btn btn-danger" id="btnForget" onclick="forgetKey()" style="display:none">🗑</button>
+      </div>
+      <div class="privacy-note">✅ Las llamadas van directamente de tu navegador a api.openai.com. Nunca pasan por ningún servidor.</div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:7px">
+        <input type="checkbox" id="saveKey" style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer" onchange="onSaveKey()">
+        <label for="saveKey" style="font-size:12px;color:var(--t3);cursor:pointer;font-weight:400">Guardar en localStorage (persiste entre sesiones)</label>
+      </div>
+    </div>
+
+    <div class="sh">📁 Documento a mejorar</div>
+
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="e=event;e.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+      <input type="file" id="fileInput" accept=".txt,.md,.docx,.pdf" style="display:none" onchange="handleFile(this.files[0])">
+      <div id="uploadContent">
+        <div class="upload-icon">📄</div>
+        <h3>Arrastra tu documento aquí</h3>
+        <p>O haz clic para seleccionar · .txt · .md · .docx · .pdf</p>
+      </div>
+    </div>
+    <div id="filePreview" style="display:none;margin-top:14px">
+      <div class="sh" style="margin-top:0">Vista previa (primeros 600 caracteres)</div>
+      <div style="background:#f7f8fa;border:1px solid var(--border);border-radius:var(--r);padding:12px;font-size:12px;color:var(--t2);font-family:monospace;white-space:pre-wrap;max-height:120px;overflow-y:auto" id="previewText"></div>
+    </div>
+
+    <div class="sh" style="margin-top:24px">🎯 Parámetros del loop</div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Score objetivo <span class="req">*</span></label>
+        <input type="number" id="scoreTarget" value="8.5" min="1" max="10" step="0.1">
+        <span class="hint">Valor entre 1.0 y 10.0. El loop para al alcanzarlo.</span>
+      </div>
+      <div class="field">
+        <label>Máximo de iteraciones <span class="req">*</span></label>
+        <input type="number" id="maxIter" value="10" min="1" max="30" step="1">
+        <span class="hint">Entre 1 y 30. Cada iteración consume tokens.</span>
+      </div>
+      <div class="field">
+        <label>Modelo</label>
+        <select id="model">
+          <option value="gpt-4o-mini" selected>gpt-4o-mini (recomendado, económico)</option>
+          <option value="gpt-4o">gpt-4o (mayor calidad, más caro)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Formato de descarga</label>
+        <select id="outputFmt">
+          <option value="md">Markdown (.md)</option>
+          <option value="txt">Texto plano (.txt)</option>
+          <option value="doc">Word (.doc)</option>
+        </select>
+      </div>
+      <div class="field form-full">
+        <label>Restricciones (datos que el agente nunca modifica)</label>
+        <textarea id="constraints" placeholder="Ej: No cambiar la fecha del evento (20 nov 2026). No cambiar el nombre de la institución. No inventar cifras de presupuesto." style="min-height:56px"></textarea>
+        <span class="hint">Opcional. Uno por línea o en texto libre.</span>
+      </div>
+    </div>
+
+    <div class="sh" style="margin-top:20px">🔍 Búsqueda web para enriquecer hipótesis</div>
+    <div class="ibox">💡 <span>Cuando está activa, el agente busca evidencia real (papers, normativa, ejemplos) antes de proponer cada cambio. Las fuentes usadas quedan registradas en la tabla de experimentos.</span></div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)">
+        <input type="checkbox" id="searchEnabled" style="width:15px;height:15px;accent-color:var(--accent)" onchange="onSearchToggle()">
+        Activar búsqueda web en el loop
+      </label>
+      <span id="searchStatus" style="font-size:11px;color:var(--t3)">Desactivada</span>
+    </div>
+
+    <div id="searchPanel" style="display:none">
+      <div class="form-grid">
+        <div class="field">
+          <label>Fuentes</label>
+          <select id="searchMode">
+            <option value="academic">📚 Académico (gratis — Semantic Scholar + OpenAlex + Wikipedia)</option>
+            <option value="tavily">🌐 Web general (Tavily — requiere key)</option>
+            <option value="both">🔀 Ambas</option>
+          </select>
+          <span class="hint">Las fuentes académicas funcionan sin API key adicional.</span>
+        </div>
+        <div class="field">
+          <label>Resultados por búsqueda</label>
+          <select id="searchResults">
+            <option value="2">2 resultados (más rápido)</option>
+            <option value="3" selected>3 resultados</option>
+            <option value="5">5 resultados (más contexto)</option>
+          </select>
+        </div>
+        <div class="field form-full" id="tavilyKeyField" style="display:none">
+          <label>Tavily API Key <span style="color:var(--t3);font-weight:400">(obtén una gratis en tavily.com)</span></label>
+          <div style="display:flex;gap:8px">
+            <input type="password" id="tavilyKey" placeholder="tvly-..." style="flex:1" oninput="onTavilyKeyChange()">
+            <button class="btn" onclick="testTavilyKey()">Probar</button>
+          </div>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:7px">
+            <input type="checkbox" id="saveTavilyKey" style="width:13px;height:13px;accent-color:var(--accent)" onchange="onSaveTavilyKey()">
+            <label for="saveTavilyKey" style="font-size:12px;color:var(--t3);cursor:pointer;font-weight:400">Guardar en localStorage</label>
+          </div>
+        </div>
+      </div>
+
+      <div id="searchPreview" style="background:#f7f8fa;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--t2);margin-top:8px;display:none">
+        <strong>Última búsqueda:</strong> <span id="searchPreviewText">—</span>
+      </div>
+    </div>
+
+
+    <div id="costEstimate" style="display:none" class="cost-box">
+      <div class="cost-item"><div class="cost-val" id="costMin">$0.02</div><div class="cost-lbl">Coste mínimo est.</div></div>
+      <div class="cost-sep"></div>
+      <div class="cost-item"><div class="cost-val" id="costMax">$0.15</div><div class="cost-lbl">Coste máximo est.</div></div>
+      <div class="cost-sep"></div>
+      <div class="cost-item"><div class="cost-val" id="costIter" style="color:var(--accent)">10</div><div class="cost-lbl">Iteraciones máx.</div></div>
+      <div style="font-size:11px;color:var(--t2);flex:1;min-width:160px">Estimación aproximada con gpt-4o-mini. El coste real depende del tamaño del documento y del número de iteraciones efectivas.</div>
+    </div>
+
+    <div class="wizard-nav" style="margin-top:16px">
+      <span class="hint">Paso 1 de 3</span>
+      <button class="btn btn-primary" onclick="showTab('rubric')">Siguiente: Rúbrica →</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: RÚBRICA ══ -->
+  <div class="tc content" id="tc-rubric">
+
+    <div class="sh" style="margin-top:0">⚡ Rúbricas predefinidas
+      <button id="btnSuggestRubric" onclick="suggestRubric()" style="margin-left:auto;font-size:11px;color:var(--teal);cursor:pointer;background:none;border:none;font-family:var(--ff);padding:0;display:none">✨ Sugerir con IA</button>
+    </div>
+    <div class="rubric-presets" id="rubricPresets">
+      <div class="rp-card selected" id="rp-A" onclick="applyPreset('A')"><div class="rp-icon">🎓</div><div class="rp-name">Memoria académica</div></div>
+      <div class="rp-card" id="rp-B" onclick="applyPreset('B')"><div class="rp-icon">🔬</div><div class="rp-name">Propuesta / Grant</div></div>
+      <div class="rp-card" id="rp-C" onclick="applyPreset('C')"><div class="rp-icon">📊</div><div class="rp-name">Informe técnico</div></div>
+      <div class="rp-card" id="rp-D" onclick="applyPreset('D')"><div class="rp-icon">⚖️</div><div class="rp-name">Contrato / Convenio</div></div>
+      <div class="rp-card" id="rp-E" onclick="applyPreset('E')"><div class="rp-icon">📝</div><div class="rp-name">Artículo investigación</div></div>
+      <div class="rp-card" id="rp-F" onclick="applyPreset('F')"><div class="rp-icon">💼</div><div class="rp-name">Plan de negocio</div></div>
+      <div class="rp-card" id="rp-G" onclick="applyPreset('G')"><div class="rp-icon">💻</div><div class="rp-name">Documentación SW</div></div>
+      <div class="rp-card" id="rp-Z" onclick="applyPreset('Z')"><div class="rp-icon">✏️</div><div class="rp-name">Personalizada</div></div>
+    </div>
+
+    <div class="sh">📐 Criterios de evaluación <button onclick="addCriterion()">+ Añadir criterio</button></div>
+
+    <div class="criteria-list" id="criteriaList"></div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div class="weight-total" id="weightTotal"><span id="weightSum">0</span>% / 100%</div>
+      <span style="font-size:11px;color:var(--t3)">Los pesos deben sumar exactamente 100%</span>
+      <button class="btn btn-sm" onclick="autoBalance()" style="margin-left:auto">⚖️ Equilibrar pesos</button>
+    </div>
+
+    <div class="ibox">💡 <span>Cada criterio debe ser <strong>independiente</strong> y <strong>evaluable objetivamente</strong>. Usa entre 3 y 6 criterios. Si mejorar C1 automáticamente mejora C2, son el mismo criterio.</span></div>
+
+    <div class="wizard-nav">
+      <button class="btn" onclick="showTab('config')">← Configuración</button>
+      <button class="btn btn-primary" id="btnGoRun" onclick="goToRun()" disabled>Siguiente: Ejecutar →</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: EJECUTAR ══ -->
+  <div class="tc content" id="tc-run">
+
+    <div class="sh" style="margin-top:0">📋 Resumen de configuración</div>
+    <div id="runSummary" style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;font-size:13px;color:var(--t2);margin-bottom:20px;line-height:1.9"></div>
+
+    <div class="human-progress v" id="progressBox">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:13px;font-weight:500;color:var(--text)" id="progressTitle">Listo para iniciar</span>
+        <span style="font-size:12px;color:var(--t3)" id="progressScore"></span>
+      </div>
+      <div id="progressSteps"></div>
+      <div class="prog-bar-wrap"><div class="prog-fill" id="progFill"></div></div>
+      <div class="log-wrap">
+        <div class="log-toggle" id="logToggleBtn" onclick="toggleLog()">
+          <span id="logToggleTxt">▼ Ver log</span>
+        </div>
+        <div class="log" id="runLog"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" id="btnRunBig" onclick="startLoop()" style="flex:1;padding:12px;font-size:14px;justify-content:center">▶ Iniciar mejora automática</button>
+      <button class="btn btn-stop" id="btnStopBig" onclick="stopLoop()" disabled style="padding:12px 20px">⏹</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: RESULTADOS ══ -->
+  <div class="tc content" id="tc-results">
+    <div id="resultsContent">
+      <div class="placeholder"><div class="bi">📊</div><p>Los resultados aparecerán aquí una vez que ejecutes el loop de mejora.</p></div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: DOCUMENTO FINAL ══ -->
+  <div class="tc content" id="tc-doc">
+    <div id="docContent">
+      <div class="placeholder"><div class="bi">📄</div><p>El documento mejorado aparecerá aquí una vez completado el loop.</p></div>
+    </div>
+  </div>
+
+
+  <!-- ══ TAB: AGENTES & PROMPTS ══ -->
+  <div class="tc content" id="tc-agents">
+
+    <div class="ibox">🤖 <span>Estos son los prompts exactos que reciben los agentes de IA. Puedes editarlos para ajustar el comportamiento del loop. Los cambios se aplican en la siguiente ejecución. Usa <code style="color:var(--accent)">{VARIABLE}</code> para las variables dinámicas.</span></div>
+
+    <div class="sh" style="margin-top:0">Agente 1 — Evaluador <span style="font-size:10px;font-weight:400;color:var(--t3);text-transform:none;margin-left:8px">Evalúa el documento y puntúa cada criterio de la rúbrica</span>
+      <button onclick="resetPrompt('eval')">↺ Restaurar</button>
+    </div>
+    <div style="margin-bottom:6px;font-size:11px;color:var(--t3)">Variables disponibles: <code style="color:var(--accent)">{CRITERIOS}</code> · <code style="color:var(--accent)">{DOCUMENTO}</code></div>
+    <div class="field">
+      <label>System prompt del evaluador</label>
+      <textarea id="promptEvalSystem" style="min-height:52px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>User prompt del evaluador</label>
+      <textarea id="promptEvalUser" style="min-height:160px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+    <div style="margin-top:6px;background:#f7f8fa;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--t3)">
+      <strong>Formato de respuesta esperado (no modificar):</strong><br>
+      <code>{"scores":{"C1":X,"C2":X,...},"score_total":X,"criterio_mas_bajo":"CX","razon_mas_bajo":"una frase"}</code>
+    </div>
+
+    <div class="sh">Agente 2 — Experimentador <span style="font-size:10px;font-weight:400;color:var(--t3);text-transform:none;margin-left:8px">Formula hipótesis y aplica el cambio al documento</span>
+      <button onclick="resetPrompt('exp')">↺ Restaurar</button>
+    </div>
+    <div style="margin-bottom:6px;font-size:11px;color:var(--t3)">Variables disponibles:
+      <code style="color:var(--accent)">{SKILL}</code> ·
+      <code style="color:var(--accent)">{CRITERIO_BAJO}</code> ·
+      <code style="color:var(--accent)">{RAZON}</code> ·
+      <code style="color:var(--accent)">{CRITERIOS}</code> ·
+      <code style="color:var(--accent)">{HISTORIAL}</code> ·
+      <code style="color:var(--accent)">{RESTRICCIONES}</code> ·
+      <code style="color:var(--accent)">{DOCUMENTO}</code> ·
+      <code style="color:var(--teal)">{CONTEXTO_WEB}</code>
+      <span style="color:var(--teal);font-size:10px">(snippets de búsqueda web, solo si está activa)</span> ·
+      <code style="color:var(--teal)">{FUENTES}</code>
+      <span style="color:var(--teal);font-size:10px">(lista de fuentes citables)</span>
+    </div>
+    <div class="field">
+      <label>System prompt del experimentador</label>
+      <textarea id="promptExpSystem" style="min-height:52px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>User prompt del experimentador</label>
+      <textarea id="promptExpUser" style="min-height:220px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+    <div style="margin-top:6px;background:#f7f8fa;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--t3)">
+      <strong>Formato de respuesta esperado (no modificar):</strong><br>
+      <code>{"hipotesis":"...","seccion":"...","documento_mejorado":"texto completo"}</code>
+    </div>
+
+    <div class="sh">Skill AutoImprove (contexto compartido)
+      <button onclick="resetPrompt('skill')">↺ Restaurar</button>
+    </div>
+    <div style="margin-bottom:6px;font-size:11px;color:var(--t3)">Se inyecta en el prompt del experimentador como <code style="color:var(--accent)">{SKILL}</code></div>
+    <div class="field">
+      <textarea id="promptSkill" style="min-height:140px;font-family:monospace;font-size:12px"></textarea>
+    </div>
+
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="savePrompts()">💾 Guardar cambios</button>
+      <button class="btn" onclick="resetPrompt('all')">↺ Restaurar todo</button>
+      <button class="btn btn-success" style="margin-left:auto" onclick="showTab('run')">▶ Ir a ejecutar →</button>
+    </div>
+  </div>
+
+
+  <!-- ══ TAB: BÚSQUEDAS ══ -->
+  <div class="tc content" id="tc-search">
+    <div id="searchTabContent">
+      <div class="placeholder"><div class="bi">🔍</div><p>Las búsquedas realizadas durante el loop aparecerán aquí.</p></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let docText = '';
+let docName = '';
+let criteria = [];
+let expLog = [];
+let finalText = '';
+let isRunning = false;
+let shouldStop = false;
+let currentScore = 0;
+let baselineScore = 0;
+let detectedLang = 'es'; // auto-detected document language
+// M3: Real cost tracking
+let sessionTokens = {prompt: 0, completion: 0, calls: 0};
+const COST_PER_1K = {'gpt-4o-mini': {in: 0.00015, out: 0.0006}, 'gpt-4o': {in: 0.005, out: 0.015}};
+
+// ── Search state ──────────────────────────────
+let searchLog = []; // {expId, query, source, results:[{title,snippet,url,year,authors}], ts}
+
+function onSearchToggle() {
+  const on = document.getElementById('searchEnabled').checked;
+  document.getElementById('searchPanel').style.display = on ? '' : 'none';
+  document.getElementById('searchStatus').textContent = on ? '✅ Activada' : 'Desactivada';
+  document.getElementById('searchStatus').style.color = on ? 'var(--teal)' : 'var(--t3)';
+}
+function onSearchModeChange() {
+  const mode = document.getElementById('searchMode').value;
+  document.getElementById('tavilyKeyField').style.display = (mode === 'tavily' || mode === 'both') ? '' : 'none';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const sm = document.getElementById('searchMode');
+  if (sm) {
+    sm.addEventListener('change', onSearchModeChange);
+    // Apply initial state (handles saved sessions where mode may be tavily/both)
+    onSearchModeChange();
+  }
+});
+function onTavilyKeyChange() {
+  const k = document.getElementById('tavilyKey').value.trim();
+  if (document.getElementById('saveTavilyKey').checked && k) localStorage.setItem('ar_tavily', k);
+}
+function onSaveTavilyKey() {
+  const k = document.getElementById('tavilyKey').value.trim();
+  if (document.getElementById('saveTavilyKey').checked && k) localStorage.setItem('ar_tavily', k);
+  else localStorage.removeItem('ar_tavily');
+}
+async function testTavilyKey() {
+  const key = document.getElementById('tavilyKey').value.trim();
+  if (!key) { alert('Introduce la key primero.'); return; }
+  const btn = event.target; btn.textContent = '⏳'; btn.disabled = true;
+  try {
+    const r = await searchTavily('test query', key, 1);
+    btn.textContent = r.length ? '✅ OK' : '⚠️ Sin resultados';
+  } catch(e) {
+    btn.textContent = '❌ Error: ' + e.message.slice(0,30);
+  }
+  btn.disabled = false;
+  setTimeout(() => { btn.textContent = 'Probar'; }, 3000);
+}
+// Load saved Tavily key
+(function loadTavilyKey() {
+  const k = localStorage.getItem('ar_tavily');
+  if (k) {
+    const el = document.getElementById('tavilyKey');
+    if (el) { el.value = k; document.getElementById('saveTavilyKey').checked = true; }
+  }
+})();
+function calcCost(model) {
+  const p = COST_PER_1K[model] || COST_PER_1K['gpt-4o-mini'];
+  return (sessionTokens.prompt/1000*p.in + sessionTokens.completion/1000*p.out);
+}
+function updateCostDisplay() {
+  const model = document.getElementById('model')?.value || 'gpt-4o-mini';
+  const cost = calcCost(model);
+  const el = document.getElementById('liveCost');
+  if (el) el.textContent = `${sessionTokens.calls} llamadas · ${(sessionTokens.prompt+sessionTokens.completion).toLocaleString()} tokens · $${cost.toFixed(4)}`;
+}
+function resetCostTracking() {
+  sessionTokens = {prompt:0, completion:0, calls:0};
+  updateCostDisplay();
+}
+
+// ── Persistence helpers ──────────────────────────────────────
+function saveSession() {
+  try {
+    const s = {docName, expLog, finalText, currentScore, baselineScore,
+               criteria, docText: docText.slice(0,50000),
+               searchLog: searchLog.slice(-20), // persist last 20 searches
+               scoreTarget: document.getElementById('scoreTarget')?.value,
+               maxIter: document.getElementById('maxIter')?.value,
+               outputFmt: document.getElementById('outputFmt')?.value,
+               constraints: document.getElementById('constraints')?.value,
+               ts: Date.now()};
+    localStorage.setItem('ar_session', JSON.stringify(s));
+  } catch(e) { /* quota exceeded — ignore */ }
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem('ar_session');
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    const age = (Date.now() - s.ts) / 3600000;
+    if (age > 48) { localStorage.removeItem('ar_session'); return false; } // expire after 48h
+    docText = s.docText || ''; docName = s.docName || '';
+    expLog = s.expLog || []; finalText = s.finalText || '';
+    currentScore = s.currentScore || 0; baselineScore = s.baselineScore || 0;
+    criteria = s.criteria || [];
+    return s;
+  } catch(e) { return false; }
+}
+
+function clearSession() {
+  localStorage.removeItem('ar_session');
+  docText=''; docName=''; expLog=[]; finalText=''; currentScore=0; baselineScore=0;
+  document.getElementById('resultsContent').innerHTML = '<div class="placeholder"><div class="bi">📊</div><p>Los resultados aparecerán aquí una vez que ejecutes el loop de mejora.</p></div>';
+  document.getElementById('docContent').innerHTML = '<div class="placeholder"><div class="bi">📄</div><p>El documento mejorado aparecerá aquí una vez completado el loop.</p></div>';
+  document.getElementById('resultsBadge').style.display='none';
+  log('🗑 Sesión borrada.', 'warn');
+}
+
+const DEFAULT_PROMPTS = {
+  evalSystem: 'Eres un evaluador experto de documentos. Tu tarea es puntuar con precisión y objetividad. Responde SOLO JSON válido, sin markdown ni texto adicional.',
+  evalUser: `Evalúa el documento con esta rúbrica. Puntúa cada criterio de 1.0 a 10.0 (usa un decimal).
+Sé estricto: un 8 significa "sólido pero mejorable", un 10 es "excelente sin defectos".
+
+Responde SOLO este JSON exacto:
+{"scores":{"C1":X,"C2":X,...},"score_total":X,"criterio_mas_bajo":"CX","razon_mas_bajo":"una frase concreta explicando el problema principal"}
+
+CRITERIOS DE LA RÚBRICA:
+{CRITERIOS}
+
+DOCUMENTO A EVALUAR:
+{DOCUMENTO}`,
+  expSystem: 'Eres un agente de mejora documental especializado en el patrón karpathy/autoresearch. Tu tarea es aplicar cambios quirúrgicos y medibles. Responde SOLO JSON válido, sin markdown ni texto adicional.',
+  expUser: `{SKILL}
+
+ESTADO ACTUAL:
+- Criterio más débil: {CRITERIO_BAJO} — {RAZON}
+- Criterios de la rúbrica:
+{CRITERIOS}
+- Experimentos anteriores (últimos 4):
+{HISTORIAL}
+{RESTRICCIONES}
+
+{CONTEXTO_WEB}
+{FUENTES}
+
+INSTRUCCIONES:
+1. Formula UNA hipótesis concreta y falsable para mejorar {CRITERIO_BAJO}
+2. Si hay CONTEXTO DE BÚSQUEDA WEB, úsalo para fundamentar el cambio con evidencia real y cita las fuentes
+3. Aplica SOLO ese cambio al documento (máximo 3 párrafos o secciones)
+4. NO modifiques datos marcados [FIJO]
+5. NO inventes datos marcados [PENDIENTE]
+6. Conserva TODA la estructura y contenido no relacionado con tu hipótesis
+
+Responde SOLO este JSON exacto:
+{"hipotesis":"descripción precisa del cambio aplicado","seccion":"nombre de la sección modificada","documento_mejorado":"el documento COMPLETO con el cambio aplicado"}
+
+Si el documento es largo, el sistema te pedirá solo "buscar"/"reemplazar" en lugar del documento completo.
+
+DOCUMENTO ACTUAL:
+{DOCUMENTO}`,
+  skill: `AUTOIMPROVE — Loop de Mejora Iterativa (karpathy/autoresearch)
+Principios: un cambio pequeño por experimento, medir, conservar si mejora, revertir si empeora.
+Reglas: máximo 3 párrafos modificados por experimento. No inventar [PENDIENTE]. No tocar datos [FIJO].
+Hipótesis válida: concreta, falsable, apunta a un criterio específico.
+  Ejemplo válido: "El apartado de metodología no cita bibliografía reciente; añadir 2 referencias post-2020 mejorará C2"
+  Ejemplo válido: "Los objetivos usan verbos vagos; reescribir con taxonomía Bloom (analizar, demostrar, diseñar) mejorará C3"
+Hipótesis inválida: "mejorar la redacción en general", "hacer el texto más claro".`
+};
+
+// Runtime prompt state (editable by user)
+let prompts = { ...DEFAULT_PROMPTS };
+
+// M2: Rolling summary of experiments
+function buildRollingSummary(history) {
+  if (!history.length) return 'Ninguno aún.';
+  return history.slice(-6).map(h => {
+    const delta = h.exp_id > 0 && history[h.exp_id-1]
+      ? (h.score_total - history[h.exp_id-1].score_total).toFixed(2)
+      : '—';
+    const sign = parseFloat(delta) > 0 ? '+' : '';
+    return `EXP_${String(h.exp_id).padStart(3,'0')} [${h.resultado}] delta:${sign}${delta} | sección:"${h.seccion}" | hipótesis:"${h.hipotesis}"`;
+  }).join('\n');
+}
+
+// M6: Adaptive strategy — track consecutive failures per criterion
+let failuresBycriterion = {};
+function getTargetCriterion(evalData, history) {
+  const cid = evalData.criterio_mas_bajo;
+  // Count consecutive fails on this criterion
+  const recentFails = history.slice(-3).filter(h => h.resultado === 'REVERTIDO' && h.criterio_atacado === cid).length;
+  if (recentFails >= 3) {
+    // Rotate to next weakest criterion
+    const scores = evalData.scores;
+    const sorted = criteria.map(c => ({id:c.id, score: scores[c.id]||0}))
+      .sort((a,b) => a.score - b.score);
+    const next = sorted.find(c => c.id !== cid);
+    if (next) {
+      log(`  🔀 Estrategia adaptativa: ${cid} lleva 3 fallos consecutivos → rotando a ${next.id} (${next.score.toFixed(1)}/10)`, 'warn');
+      return {criterio_mas_bajo: next.id, razon_mas_bajo: `Criterio alternativo por estancamiento en ${cid}`, scores};
+    }
+  }
+  return evalData;
+}
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+function showTab(id) {
+  document.querySelectorAll('.tc').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ni-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('tc-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  const titles = {config:'Configuración',rubric:'Rúbrica de evaluación',run:'Ejecutar loop',results:'Resultados',doc:'Documento final',agents:'Agentes & Prompts', search:'Búsquedas web realizadas'};
+  const subs = {config:'Sube tu documento y configura el proceso',rubric:'Define los criterios de calidad del documento',run:'Monitoriza el proceso de mejora iterativa',results:'Tabla de experimentos y evolución del score',doc:'Versión mejorada del documento y exportación',agents:'Edita los prompts de los agentes evaluador y experimentador', search:'Histórico de búsquedas y fuentes usadas en el loop'};
+  document.getElementById('topbarTitle').textContent = titles[id] || id;
+  document.getElementById('topbarSub').textContent = subs[id] || '';
+}
+
+// ═══════════════════════════════════════════════
+//  API KEY
+// ═══════════════════════════════════════════════
+function onKeyChange() {
+  const k = document.getElementById('apiKey').value.trim();
+  const ok = k.startsWith('sk-') && k.length > 20;
+  if (ok) {
+    const initials = k.slice(3, 5).toUpperCase();
+    document.getElementById('avI').textContent = initials;
+    document.getElementById('avL').textContent = 'sk-' + k.slice(3, 7) + '...';
+    document.getElementById('btnForget').style.display = '';
+  } else {
+    document.getElementById('avI').textContent = '--';
+    document.getElementById('avL').textContent = 'Sin configurar';
+    document.getElementById('btnForget').style.display = 'none';
+  }
+  checkReady();
+  updateCostEstimate();
+}
+function toggleKeyVis() {
+  const el = document.getElementById('apiKey');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+function onSaveKey() {
+  const k = document.getElementById('apiKey').value.trim();
+  if (document.getElementById('saveKey').checked && k) localStorage.setItem('ar_key', k);
+  else localStorage.removeItem('ar_key');
+}
+function forgetKey() {
+  document.getElementById('apiKey').value = '';
+  document.getElementById('saveKey').checked = false;
+  localStorage.removeItem('ar_key');
+  onKeyChange();
+}
+const saved = localStorage.getItem('ar_key');
+if (saved) { document.getElementById('apiKey').value = saved; document.getElementById('saveKey').checked = true; onKeyChange(); }
+
+// ═══════════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+}
+async function handleFile(file) {
+  if (!file) return;
+  docName = file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['txt','md','docx','pdf'].includes(ext)) {
+    alert('Formato no soportado. Usa .txt, .md, .docx o .pdf'); return;
+  }
+  log(`📁 Cargando ${file.name}...`, 'info');
+  try {
+    if (ext === 'txt' || ext === 'md') {
+      docText = await file.text();
+    } else if (ext === 'docx') {
+      docText = await readDocx(file);
+    } else if (ext === 'pdf') {
+      docText = await readPdf(file);
+    }
+    const dz = document.getElementById('dropZone');
+    dz.classList.add('has-file');
+    document.getElementById('uploadContent').innerHTML = `<div class="upload-icon">✅</div><h3>${file.name}</h3><p>${(file.size/1024).toFixed(1)} KB · ${docText.length.toLocaleString()} caracteres</p><div class="file-pill">📄 ${ext.toUpperCase()}</div>`;
+    document.getElementById('filePreview').style.display = '';
+    document.getElementById('previewText').textContent = docText.slice(0, 600) + (docText.length > 600 ? '...' : '');
+    log(`✅ Documento cargado: ${docText.length} caracteres`, 'ok');
+    const sugBtn = document.getElementById('btnSuggestRubric');
+    if (sugBtn) sugBtn.style.display = '';
+    // M8: Detect language
+    detectedLang = detectLanguage(docText);
+    log(`🌐 Idioma detectado: ${detectedLang === 'es' ? 'Español' : detectedLang === 'en' ? 'Inglés' : detectedLang}`, 'info');
+    checkReady();
+    updateCostEstimate();
+  } catch(err) {
+    log('❌ Error leyendo el archivo: ' + err.message, 'err');
+  }
+}
+// Lazy JSZip loader — loads from CDN only when needed
+let _jsZipPromise = null;
+function loadJSZip() {
+  if (typeof JSZip !== 'undefined') return Promise.resolve(JSZip);
+  if (_jsZipPromise) return _jsZipPromise;
+  _jsZipPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload  = () => resolve(JSZip);
+    s.onerror = () => reject(new Error('No se pudo cargar JSZip. Comprueba tu conexión a internet.'));
+    document.head.appendChild(s);
+  });
+  return _jsZipPromise;
+}
+
+async function readDocx(file) {
+  // Load JSZip lazily (only when a .docx is actually uploaded)
+  let JZ;
+  try {
+    JZ = await loadJSZip();
+  } catch(e) {
+    throw new Error(e.message);
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  let zip;
+  try {
+    zip = await JZ.loadAsync(arrayBuffer);
+  } catch(e) {
+    throw new Error('No se pudo abrir el .docx como ZIP: ' + e.message);
+  }
+
+  // Find word/document.xml (case-insensitive)
+  const allKeys = Object.keys(zip.files);
+  const xmlKey  = allKeys.find(k => k.toLowerCase() === 'word/document.xml');
+  if (!xmlKey) throw new Error('word/document.xml no encontrado en el .docx');
+
+  const xmlStr = await zip.file(xmlKey).async('string');
+
+  // Parse: split by <w:p>, extract <w:t> runs, preserve paragraph breaks
+  const paragraphs = [];
+  const pBlocks = xmlStr.split(/<w:p[ >]/);
+  for (const block of pBlocks) {
+    const runs = [];
+    let pos = 0;
+    while (pos < block.length) {
+      const tStart = block.indexOf('<w:t', pos);
+      if (tStart === -1) break;
+      const tClose = block.indexOf('>', tStart);
+      if (tClose === -1) break;
+      const tEnd = block.indexOf('</w:t>', tClose);
+      if (tEnd === -1) break;
+      const txt = block.slice(tClose + 1, tEnd)
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+        .replace(/&#xA;/g, '\n').replace(/&#x9;/g, '\t');
+      if (txt) runs.push(txt);
+      pos = tEnd + 6;
+    }
+    if (runs.length) paragraphs.push(runs.join(''));
+  }
+
+  const result = paragraphs.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  if (!result) throw new Error('El .docx no contiene texto extraíble (puede ser imagen o estar protegido)');
+  return result;
+}
+async function readPdf(file) {
+  // Basic PDF text extraction — reads raw stream
+  const text = await file.text();
+  const matches = text.match(/BT[\s\S]*?ET/g) || [];
+  let out = matches.map(block => {
+    const parts = block.match(/\(([^)]*)\)/g) || [];
+    return parts.map(p => p.slice(1,-1)).join(' ');
+  }).join('\n').replace(/\\n/g,'\n').trim();
+  if (out.length < 50) out = '[El PDF parece ser escaneado o tiene texto no extraíble. Usa un .txt o .md en su lugar.]';
+  return out;
+}
+
+// ═══════════════════════════════════════════════
+//  RUBRIC PRESETS
+// ═══════════════════════════════════════════════
+const PRESETS = {
+  A: { name:'Memoria académica', obj:8.5, criteria:[
+    {id:'C1',name:'Rigor normativo',weight:25,desc:'Formato institucional, apartados reglamentarios, normativa citada'},
+    {id:'C2',name:'Justificación científica',weight:25,desc:'Bibliografía actual (<5 años), respaldo sólido y pertinente'},
+    {id:'C3',name:'Claridad y precisión',weight:20,desc:'Lenguaje apropiado para tribunal, sin ambigüedades, terminología correcta'},
+    {id:'C4',name:'Viabilidad operativa',weight:15,desc:'Recursos, instalaciones, ratios, fechas concretos y realistas'},
+    {id:'C5',name:'Coherencia interna',weight:15,desc:'Objetivos, contenidos, metodología y evaluación consistentes entre sí'},
+  ]},
+  B: { name:'Propuesta / Grant', obj:8.0, criteria:[
+    {id:'C1',name:'Relevancia e impacto',weight:30,desc:'Problema relevante, impacto cuantificado, transferencia clara'},
+    {id:'C2',name:'Solidez metodológica',weight:25,desc:'Metodología apropiada, objetivos SMART, cronograma realista'},
+    {id:'C3',name:'Originalidad',weight:20,desc:'Supera el estado del arte, enfoque novedoso y justificado'},
+    {id:'C4',name:'Viabilidad del equipo',weight:15,desc:'Perfil adecuado, recursos proporcionales al alcance'},
+    {id:'C5',name:'Claridad expositiva',weight:10,desc:'Fácil de evaluar, estructura y lenguaje apropiados para la convocatoria'},
+  ]},
+  C: { name:'Informe técnico', obj:8.5, criteria:[
+    {id:'C1',name:'Completitud',weight:25,desc:'Cubre todos los aspectos del encargo, sin lagunas importantes'},
+    {id:'C2',name:'Rigor técnico',weight:30,desc:'Datos verificables, conclusiones derivadas de evidencia'},
+    {id:'C3',name:'Accionabilidad',weight:25,desc:'Recomendaciones concretas, priorizadas y ejecutables'},
+    {id:'C4',name:'Claridad',weight:20,desc:'El destinatario puede entender y actuar sobre el informe'},
+  ]},
+  D: { name:'Contrato / Convenio', obj:9.0, criteria:[
+    {id:'C1',name:'Completitud de clausulado',weight:30,desc:'Todas las cláusulas esenciales del tipo de contrato presentes'},
+    {id:'C2',name:'Precisión jurídica',weight:30,desc:'Terminología precisa, obligaciones bien delimitadas, sin ambigüedad'},
+    {id:'C3',name:'Coherencia interna',weight:20,desc:'Sin contradicciones entre cláusulas, referencias cruzadas correctas'},
+    {id:'C4',name:'Equilibrio entre partes',weight:20,desc:'Obligaciones y derechos razonablemente distribuidos'},
+  ]},
+  E: { name:'Artículo investigación', obj:8.0, criteria:[
+    {id:'C1',name:'Estructura IMRyD',weight:20,desc:'Intro/Métodos/Resultados/Discusión completos y bien delimitados'},
+    {id:'C2',name:'Hipótesis y objetivos',weight:20,desc:'Pregunta de investigación clara, objetivos medibles'},
+    {id:'C3',name:'Solidez metodológica',weight:25,desc:'Método replicable, controles adecuados, estadística correcta'},
+    {id:'C4',name:'Discusión y limitaciones',weight:20,desc:'Contextualización con literatura, limitaciones reconocidas honestamente'},
+    {id:'C5',name:'Calidad bibliográfica',weight:15,desc:'Referencias actuales, relevantes y correctamente citadas'},
+  ]},
+  F: { name:'Plan de negocio', obj:8.0, criteria:[
+    {id:'C1',name:'Propuesta de valor',weight:25,desc:'Problema y solución articulados, diferencial creíble'},
+    {id:'C2',name:'Modelo de negocio',weight:25,desc:'Ingresos, costes y unit economics coherentes'},
+    {id:'C3',name:'Mercado y tracción',weight:20,desc:'TAM/SAM/SOM justificado, evidencia de validación con clientes'},
+    {id:'C4',name:'Equipo',weight:15,desc:'Perfil ejecutor, responsabilidades asignadas'},
+    {id:'C5',name:'Riesgos y mitigación',weight:15,desc:'Principales riesgos identificados con plan de respuesta'},
+  ]},
+  G: { name:'Documentación SW', obj:8.5, criteria:[
+    {id:'C1',name:'Completitud',weight:25,desc:'Instalación, configuración, uso básico/avanzado y troubleshooting'},
+    {id:'C2',name:'Precisión técnica',weight:30,desc:'Comandos y ejemplos funcionan, parámetros correctamente descritos'},
+    {id:'C3',name:'Usabilidad',weight:25,desc:'Usuario nuevo puede seguirla sin asistencia, estructura navegable'},
+    {id:'C4',name:'Mantenibilidad',weight:20,desc:'Versionada, cambios de API reflejados, changelog presente'},
+  ]},
+  Z: { name:'Personalizada', obj:8.5, criteria:[
+    {id:'C1',name:'Criterio 1',weight:40,desc:'Descripción del criterio 1'},
+    {id:'C2',name:'Criterio 2',weight:30,desc:'Descripción del criterio 2'},
+    {id:'C3',name:'Criterio 3',weight:30,desc:'Descripción del criterio 3'},
+  ]},
+};
+
+let currentPreset = 'A';
+
+// ════════════════════════════════════════════════
+//  SEARCH ENGINE
+// ════════════════════════════════════════════════
+
+// ── Tavily (web general) ─────────────────────
+async function searchTavily(query, key, maxResults=3) {
+  const resp = await fetch('https://api.tavily.com/search', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      api_key: key, query, max_results: maxResults,
+      search_depth: 'basic', include_answer: false,
+      include_raw_content: false
+    })
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(()=>({}));
+    throw new Error(err.detail || err.message || 'Tavily error '+resp.status);
+  }
+  const data = await resp.json();
+  return (data.results||[]).map(r=>({
+    title: r.title||'', snippet: r.content||r.description||'',
+    url: r.url||'', year:'', authors:[], source:'web'
+  }));
+}
+
+// ── Semantic Scholar ─────────────────────────
+async function searchSemanticScholar(query, maxResults=3) {
+  const q = encodeURIComponent(query);
+  const resp = await fetch(
+    `https://api.semanticscholar.org/graph/v1/paper/search?query=${q}&limit=${maxResults}&fields=title,abstract,year,authors,externalIds,citationCount`,
+    {headers:{'Accept':'application/json'}}
+  );
+  if (!resp.ok) throw new Error('Semantic Scholar error '+resp.status);
+  const data = await resp.json();
+  return (data.data||[]).map(p=>({
+    title: p.title||'',
+    snippet: p.abstract ? p.abstract.slice(0,300)+'...' : 'Sin resumen disponible.',
+    url: p.externalIds?.DOI ? `https://doi.org/${p.externalIds.DOI}` : `https://www.semanticscholar.org/paper/${p.paperId}`,
+    year: p.year||'',
+    authors: (p.authors||[]).slice(0,3).map(a=>a.name),
+    citations: p.citationCount||0,
+    source:'semantic_scholar'
+  }));
+}
+
+// ── OpenAlex ─────────────────────────────────
+async function searchOpenAlex(query, maxResults=3) {
+  const q = encodeURIComponent(query);
+  const resp = await fetch(
+    `https://api.openalex.org/works?search=${q}&per-page=${maxResults}&select=title,abstract_inverted_index,publication_year,authorships,doi,cited_by_count`,
+    {headers:{'Accept':'application/json','User-Agent':'AutoResearch/1.0'}}
+  );
+  if (!resp.ok) throw new Error('OpenAlex error '+resp.status);
+  const data = await resp.json();
+  return (data.results||[]).map(w=>{
+    // Reconstruct abstract from inverted index
+    let abstract = '';
+    if (w.abstract_inverted_index) {
+      const positions = {};
+      Object.entries(w.abstract_inverted_index).forEach(([word, pos]) => {
+        pos.forEach(p => { positions[p] = word; });
+      });
+      abstract = Object.keys(positions).sort((a,b)=>a-b).map(k=>positions[k]).join(' ').slice(0,300)+'...';
+    }
+    return {
+      title: w.title||'',
+      snippet: abstract || 'Sin resumen disponible.',
+      url: w.doi ? 'https://doi.org/'+w.doi.replace('https://doi.org/','') : '',
+      year: w.publication_year||'',
+      authors: (w.authorships||[]).slice(0,3).map(a=>a.author?.display_name||''),
+      citations: w.cited_by_count||0,
+      source:'openalex'
+    };
+  });
+}
+
+// ── Wikipedia ────────────────────────────────
+async function searchWikipedia(query, lang='en', maxResults=2) {
+  // Auto-detect language from document
+  const wikiLang = detectedLang === 'es' ? 'es' : detectedLang === 'fr' ? 'fr' : detectedLang === 'de' ? 'de' : 'en';
+  const q = encodeURIComponent(query);
+  const resp = await fetch(
+    `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${q}&srlimit=${maxResults}&utf8=1&format=json&origin=*`
+  );
+  if (!resp.ok) throw new Error('Wikipedia error '+resp.status);
+  const data = await resp.json();
+  return (data.query?.search||[]).map(r=>({
+    title: r.title||'',
+    snippet: (r.snippet||'').replace(/<[^>]+>/g,'').slice(0,280)+'...',
+    url: `https://${wikiLang}.wikipedia.org/wiki/${encodeURIComponent((r.title||'').replace(/ /g,'_'))}`,
+    year:'', authors:[], source:'wikipedia'
+  }));
+}
+
+// ── Query generator ──────────────────────────
+async function generateSearchQuery(criterionId, reason, docSample) {
+  const crit = criteria.find(c=>c.id===criterionId);
+  const prompt = `Given this document improvement context, generate a precise search query to find relevant evidence.
+
+Criterion to improve: ${crit?.name||criterionId} — ${reason}
+Document excerpt: ${docSample.slice(0,500)}
+
+Rules:
+- Query must be 3-7 words, specific and searchable
+- Focus on finding: papers, standards, best practices, or examples relevant to improving this criterion
+- Output ONLY the search query text, nothing else`;
+  return callGPT('You generate precise search queries. Output ONLY the query, no explanation.', prompt, 60);
+}
+
+// ── Main orchestrator ─────────────────────────
+async function searchForContext(expId, criterionId, reason, docText) {
+  const enabled = document.getElementById('searchEnabled')?.checked;
+  if (!enabled) return {context:'', sources:[], query:''};
+
+  const mode = document.getElementById('searchMode')?.value || 'academic';
+  const maxR  = parseInt(document.getElementById('searchResults')?.value||'3');
+
+  log(`  🔍 Buscando contexto para mejorar ${criterionId}...`, 'info');
+
+  let query = '';
+  try {
+    query = (await generateSearchQuery(criterionId, reason, docText)).trim().replace(/^["']|["']$/g,'');
+  } catch(e) {
+    // Fallback: use criterion name + reason words
+    query = ((criteria.find(c=>c.id===criterionId)?.name||'') + ' ' + reason.split(' ').slice(0,4).join(' ')).trim();
+  }
+
+  log(`  🔎 Query: "${query}"`, 'info');
+  document.getElementById('searchPreview').style.display='';
+  document.getElementById('searchPreviewText').textContent = query;
+
+  const results = [];
+  const errors  = [];
+
+  // ── Academic sources (always if mode includes them) ──
+  if (mode === 'academic' || mode === 'both') {
+    const [ssRes, oaRes, wkRes] = await Promise.allSettled([
+      searchSemanticScholar(query, maxR),
+      searchOpenAlex(query, maxR),
+      searchWikipedia(query)
+    ]);
+    if (ssRes.status==='fulfilled') results.push(...ssRes.value.slice(0,maxR));
+    else errors.push('Semantic Scholar: '+ssRes.reason?.message);
+    if (oaRes.status==='fulfilled' && results.length < maxR*2) results.push(...oaRes.value.slice(0,2));
+    else if (oaRes.status==='rejected') errors.push('OpenAlex: '+oaRes.reason?.message);
+    if (wkRes.status==='fulfilled') results.push(...wkRes.value.slice(0,2));
+    else errors.push('Wikipedia: '+wkRes.reason?.message);
+  }
+
+  // ── Tavily web search ──
+  if (mode === 'tavily' || mode === 'both') {
+    const tavilyKey = document.getElementById('tavilyKey')?.value.trim();
+    if (tavilyKey) {
+      try {
+        const tvRes = await searchTavily(query, tavilyKey, maxR);
+        results.push(...tvRes);
+      } catch(e) { errors.push('Tavily: '+e.message); }
+    } else {
+      log(`  ⚠️ Tavily activado pero sin key configurada.`, 'warn');
+    }
+  }
+
+  if (errors.length) log(`  ⚠️ Errores en búsqueda: ${errors.join(' · ')}`, 'warn');
+
+  // Deduplicate by title
+  const seen = new Set();
+  const unique = results.filter(r => {
+    const k = r.title.slice(0,40).toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  }).slice(0, maxR * 2);
+
+  // Build context string for the prompt
+  const context = unique.length ? unique.map((r,i) =>
+    `[${i+1}] ${r.title}${r.year?' ('+r.year+')':''}${r.authors?.length?' — '+r.authors.join(', '):''}\n${r.snippet}${r.url?'\nURL: '+r.url:''}`
+  ).join('\n\n') : 'No se encontraron resultados relevantes.';
+
+  const sources = unique.map(r => `${r.title}${r.year?' ('+r.year+')':''}${r.url?' — '+r.url:''}`);
+
+  // Log to search tab
+  searchLog.push({expId, query, results: unique, ts: new Date().toLocaleTimeString('es'), errors});
+  renderSearchTab();
+  document.getElementById('searchBadge').style.display='';
+
+  log(`  📚 ${unique.length} fuentes encontradas (${unique.filter(r=>r.source==='semantic_scholar'||r.source==='openalex').length} académicas, ${unique.filter(r=>r.source==='web').length} web)`, 'ok');
+
+  return {context, sources, query};
+}
+
+// ── Render search tab ─────────────────────────
+function renderSearchTab() {
+  if (!searchLog.length) return;
+  const totalSearches = searchLog.length;
+  const totalResults  = searchLog.reduce((s,e)=>s+e.results.length,0);
+  const totalErrors   = searchLog.reduce((s,e)=>s+e.errors.length,0);
+  const sourceTypes   = {academic:0, web:0, wikipedia:0};
+  searchLog.forEach(e => e.results.forEach(r => {
+    if (r.source==='web') sourceTypes.web++;
+    else if (r.source==='wikipedia') sourceTypes.wikipedia++;
+    else sourceTypes.academic++;
+  }));
+
+  const statsHtml = `<div class="search-stats">
+    <div class="ss-item"><div class="ss-val">${totalSearches}</div><div class="ss-lbl">Búsquedas</div></div>
+    <div class="ss-item"><div class="ss-val">${totalResults}</div><div class="ss-lbl">Fuentes totales</div></div>
+    <div class="ss-item"><div class="ss-val">${sourceTypes.academic}</div><div class="ss-lbl">Académicas</div></div>
+    <div class="ss-item"><div class="ss-val">${sourceTypes.web}</div><div class="ss-lbl">Web</div></div>
+    ${totalErrors?`<div class="ss-item"><div class="ss-val" style="color:var(--amber)">${totalErrors}</div><div class="ss-lbl">Errores</div></div>`:''}
+  </div>`;
+
+  const sourceLabel = {semantic_scholar:'📄 S2', openalex:'📗 OA', wikipedia:'📖 Wiki', web:'🌐 Web'};
+  const sourceClass = {semantic_scholar:'sc-academic', openalex:'sc-academic', wikipedia:'sc-academic', web:'sc-web'};
+
+  const cardsHtml = [...searchLog].reverse().map(entry => {
+    const resultCards = entry.results.map(r => `
+      <div class="sc-result">
+        <div class="sr-title"><a href="${r.url||'#'}" target="_blank" style="color:var(--accent);text-decoration:none">${r.title||'Sin título'}</a>
+          ${r.year?`<span style="color:var(--t3);font-size:10px;margin-left:6px">${r.year}</span>`:''}
+          ${r.citations?`<span style="color:var(--t3);font-size:10px;margin-left:6px">📑 ${r.citations}</span>`:''}
+        </div>
+        ${r.authors?.length?`<div style="font-size:10px;color:var(--t3);margin-bottom:3px">${r.authors.join(', ')}</div>`:''}
+        <div class="sr-snippet">${r.snippet}</div>
+        ${r.url?`<div class="sr-url">${r.url}</div>`:''}
+      </div>`).join('');
+
+    const sourceBadges = [...new Set(entry.results.map(r=>r.source))].map(s=>
+      `<span class="sc-source ${sourceClass[s]||'sc-academic'}">${sourceLabel[s]||s}</span>`
+    ).join('');
+
+    return `<div class="search-card fi">
+      <div class="sc-header">
+        <div class="sc-query">🔎 "${entry.query}" <span style="color:var(--t3);font-weight:400">EXP_${String(entry.expId).padStart(3,'0')}</span></div>
+        <div class="sc-meta">${entry.ts} · ${entry.results.length} resultados</div>
+      </div>
+      <div style="margin-bottom:8px">${sourceBadges}</div>
+      ${entry.errors.length?`<div style="font-size:10px;color:var(--amber);margin-bottom:6px">⚠️ ${entry.errors.join(' · ')}</div>`:''}
+      ${resultCards}
+    </div>`;
+  }).join('');
+
+  document.getElementById('searchTabContent').innerHTML =
+    `<div class="sh" style="margin-top:0">📊 Estadísticas de sesión</div>${statsHtml}
+     <div class="sh">Historial de búsquedas <button onclick="exportSearchLog()" style="margin-left:auto;font-size:11px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:var(--ff)">⬇ Exportar CSV</button></div>
+     ${cardsHtml}`;
+}
+
+function exportSearchLog() {
+  let csv = 'exp_id,query,fuente,titulo,año,autores,snippet,url\n';
+  searchLog.forEach(e => {
+    if (!e.results.length) {
+      csv += `EXP_${String(e.expId).padStart(3,'0')},"${e.query}",—,—,—,—,Sin resultados,—\n`;
+    } else {
+      e.results.forEach(r => {
+        csv += [
+          `EXP_${String(e.expId).padStart(3,'0')}`,
+          `"${e.query.replace(/"/g,"'")}"`,
+          r.source, `"${(r.title||'').replace(/"/g,"'")}"`,
+          r.year||'',
+          `"${(r.authors||[]).join('; ').replace(/"/g,"'")}"`,
+          `"${(r.snippet||'').slice(0,150).replace(/"/g,"'")}"`,
+          r.url||''
+        ].join(',') + '\n';
+      });
+    }
+  });
+  const stem = (docName||'documento').replace(/\.[^.]+$/,'');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=stem+'_busquedas.csv'; a.click();
+}
+
+// M5: AI-powered rubric suggestion
+async function suggestRubric() {
+  if (!docText) { alert('Primero sube un documento.'); return; }
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { alert('Introduce tu API key primero.'); showTab('config'); return; }
+  const btn = document.getElementById('btnSuggestRubric');
+  btn.textContent = '⏳ Analizando...'; btn.disabled = true;
+  log('✨ Solicitando sugerencia de rúbrica a IA...', 'info');
+  try {
+    const sample = docText.slice(0, 3000);
+    // Search for rubric standards relevant to document type
+    let rubricContext = '';
+    try {
+      const titleWords = docText.slice(0,200).split(/\s+/).slice(0,5).join(' ');
+      // Use language-appropriate search terms
+      const rubricTerms = detectedLang === 'es' ? 'criterios evaluación calidad rúbrica'
+                        : detectedLang === 'fr' ? 'critères évaluation qualité rubrique'
+                        : detectedLang === 'de' ? 'Bewertungskriterien Qualität Rubrik'
+                        : 'evaluation criteria quality rubric';
+      const searchQ = titleWords + ' ' + rubricTerms;
+      const [ssRes] = await Promise.allSettled([searchSemanticScholar(searchQ, 2)]);
+      if (ssRes.status === 'fulfilled' && ssRes.value.length) {
+        rubricContext = '\n\nContexto de estándares académicos para este tipo de documento:\n' +
+          ssRes.value.map(r=>`- ${r.title} (${r.year}): ${r.snippet.slice(0,150)}`).join('\n');
+        log(`  📚 ${ssRes.value.length} referencias académicas usadas para sugerir rúbrica`, 'info');
+      }
+    } catch(e) { /* búsqueda opcional */ }
+
+    const prompt = `Analiza este documento y propón una rúbrica de evaluación personalizada con 4-5 criterios específicos para este tipo de contenido concreto.
+
+NO uses categorías genéricas. Los criterios deben ser específicos al contenido real del documento.
+Los pesos deben sumar exactamente 100.${rubricContext}
+
+Responde SOLO JSON sin markdown:
+{"nombre":"tipo de documento detectado","criterios":[{"id":"C1","nombre":"nombre concreto","peso":25,"desc":"qué evalúa exactamente, en relación al contenido del documento"},...]}
+
+DOCUMENTO:
+${sample}`;
+    const raw = await callGPT(
+      'Eres experto en evaluación de documentos. Responde SOLO JSON válido sin markdown.',
+      prompt, 800
+    );
+    const data = parseJSON(raw);
+    if (!data.criterios || !data.criterios.length) throw new Error('No se recibieron criterios');
+
+    // Normalize weights to exactly 100
+    const total = data.criterios.reduce((s,c)=>s+(c.peso||0),0);
+    data.criterios.forEach(c => c.weight = Math.round(c.peso * 100 / total));
+    const diff = 100 - data.criterios.reduce((s,c)=>s+c.weight,0);
+    data.criterios[0].weight += diff;
+
+    // Apply as custom rubric
+    criteria = data.criterios.map((c,i) => ({
+      id: c.id || 'C'+(i+1),
+      name: c.nombre || c.name || 'Criterio '+(i+1),
+      weight: c.weight,
+      desc: c.desc || c.descripcion || ''
+    }));
+    document.querySelectorAll('.rp-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('rp-Z').classList.add('selected');
+    currentPreset = 'Z';
+    renderCriteria();
+    checkReady();
+    log(`✅ Rúbrica sugerida: "${data.nombre}" con ${criteria.length} criterios`, 'ok');
+    // Show a brief confirmation
+    btn.textContent = '✅ Rúbrica aplicada';
+    setTimeout(() => { btn.textContent = '✨ Sugerir con IA'; btn.disabled = false; }, 3000);
+  } catch(e) {
+    log('❌ Error al sugerir rúbrica: ' + e.message, 'err');
+    btn.textContent = '✨ Sugerir con IA'; btn.disabled = false;
+  }
+}
+
+function applyPreset(key) {
+  currentPreset = key;
+  document.querySelectorAll('.rp-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('rp-'+key).classList.add('selected');
+  const p = PRESETS[key];
+  criteria = p.criteria.map(c => ({...c}));
+  document.getElementById('scoreTarget').value = p.obj;
+  renderCriteria();
+  checkReady();
+}
+
+function renderCriteria() {
+  const list = document.getElementById('criteriaList');
+  list.innerHTML = '';
+  criteria.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'crit-row';
+    row.innerHTML = `
+      <input type="text" value="${esc(c.name)}" placeholder="Nombre del criterio" oninput="criteria[${i}].name=this.value;checkReady()">
+      <input type="number" value="${c.weight}" min="1" max="100" placeholder="%" oninput="criteria[${i}].weight=parseInt(this.value)||0;updateWeightTotal()">
+      <input type="text" value="${esc(c.desc)}" placeholder="Qué evalúa este criterio..." oninput="criteria[${i}].desc=this.value">
+      <button class="crit-del" onclick="removeCriterion(${i})" title="Eliminar criterio">×</button>
+    `;
+    list.appendChild(row);
+  });
+  updateWeightTotal();
+}
+function addCriterion() {
+  const n = criteria.length + 1;
+  criteria.push({id:'C'+n, name:'Criterio '+n, weight:Math.floor(100/Math.min(n,6)), desc:'Descripción del criterio '+n});
+  renderCriteria();
+  // renumber weights
+  autoBalance();
+}
+function removeCriterion(i) {
+  if (criteria.length <= 2) { alert('La rúbrica necesita al menos 2 criterios.'); return; }
+  criteria.splice(i, 1);
+  criteria.forEach((c,j) => c.id = 'C'+(j+1));
+  renderCriteria();
+}
+function updateWeightTotal() {
+  // re-read from inputs
+  document.querySelectorAll('.crit-row input[type=number]').forEach((inp,i) => {
+    if (criteria[i]) criteria[i].weight = parseInt(inp.value)||0;
+  });
+  const sum = criteria.reduce((a,c) => a + c.weight, 0);
+  document.getElementById('weightSum').textContent = sum;
+  const el = document.getElementById('weightTotal');
+  el.className = 'weight-total ' + (sum === 100 ? 'wt-ok' : 'wt-warn');
+  document.getElementById('btnGoRun').disabled = sum !== 100 || !docText || criteria.length < 2;
+}
+function autoBalance() {
+  const n = criteria.length;
+  const base = Math.floor(100/n);
+  const rem = 100 - base*n;
+  criteria.forEach((c,i) => c.weight = base + (i < rem ? 1 : 0));
+  renderCriteria();
+}
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// M8: Language detection (heuristic — counts common stopwords)
+function detectLanguage(text) {
+  const sample = text.slice(0, 2000).toLowerCase();
+  const esWords = ['que','para','con','una','los','las','del','por','como','este','esta','ser','más','también','pero','sobre','entre','cuando','donde'];
+  const enWords = ['the','and','for','that','with','this','from','have','are','been','they','which','their','will','would','there'];
+  const frWords = ['les','des','une','pour','dans','qui','sur','avec','par','est','que','son','ses'];
+  const deWords = ['die','der','und','den','dem','eine','auch','sich','nicht','oder','wenn'];
+  const score = (words) => words.filter(w => sample.includes(' '+w+' ')).length;
+  const scores = {es:score(esWords), en:score(enWords), fr:score(frWords), de:score(deWords)};
+  return Object.entries(scores).sort((a,b)=>b[1]-a[1])[0][0];
+}
+
+// Init default preset
+applyPreset('A');
+// Init prompt editors
+initPromptEditors();
+// M5: Check for saved session
+(function checkSavedSession() {
+  try {
+    const raw = localStorage.getItem('ar_session');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    const age = Math.round((Date.now()-s.ts)/60000);
+    const ageStr = age < 60 ? age+'min' : Math.round(age/60)+'h';
+    const banner = document.getElementById('sessionBanner');
+    if (banner && s.docName) {
+      document.getElementById('sessionMsg').textContent =
+        `Sesión guardada hace ${ageStr}: "${s.docName}" · ${(s.expLog||[]).length-1} experimentos`;
+      banner.style.display = 'flex';
+    }
+  } catch(e) {}
+})();
+
+function restoreSession() {
+  const s = loadSession();
+  if (!s) return;
+  if (s.scoreTarget) document.getElementById('scoreTarget').value = s.scoreTarget;
+  if (s.maxIter)     document.getElementById('maxIter').value = s.maxIter;
+  if (s.outputFmt)   document.getElementById('outputFmt').value = s.outputFmt;
+  if (s.constraints) document.getElementById('constraints').value = s.constraints;
+  if (s.criteria && s.criteria.length) { criteria = s.criteria; renderCriteria(); }
+  document.getElementById('sessionBanner').style.display = 'none';
+  if (docText) {
+    document.getElementById('uploadContent').innerHTML =
+      `<div class="upload-icon">✅</div><h3>${docName}</h3><p>${docText.length.toLocaleString()} caracteres · sesión restaurada</p>`;
+    document.getElementById('dropZone').classList.add('has-file');
+    document.getElementById('filePreview').style.display='';
+    document.getElementById('previewText').textContent = docText.slice(0,600);
+  }
+  if (expLog.length > 1) {
+    renderResults();
+    renderDoc();
+    document.getElementById('resultsBadge').style.display='';
+  }
+  // Restore search log if present
+  if (s.searchLog && s.searchLog.length) {
+    searchLog = s.searchLog;
+    renderSearchTab();
+    document.getElementById('searchBadge').style.display='';
+    log(`🔍 ${searchLog.length} búsquedas restauradas`, 'info');
+  }
+  // Ensure search UI reflects current state after restore
+  setTimeout(() => { onSearchModeChange(); onSearchToggle(); }, 100);
+  checkReady();
+  log('✅ Sesión restaurada: '+docName+' · '+(expLog.length-1)+' experimentos', 'ok');
+  if (expLog.length > 1) showTab('results');
+}
+
+// ═══════════════════════════════════════════════
+//  READY CHECK & COST ESTIMATE
+// ═══════════════════════════════════════════════
+function checkReady() {
+  const ok = !!docText && !!document.getElementById('apiKey').value.trim() && criteria.reduce((a,c)=>a+c.weight,0)===100;
+  document.getElementById('btnRun').disabled = !ok;
+  document.getElementById('btnGoRun').disabled = !ok;
+}
+function updateCostEstimate() {
+  if (!docText) { document.getElementById('costEstimate').style.display='none'; return; }
+  const chars = docText.length;
+  const iters = parseInt(document.getElementById('maxIter').value)||10;
+  const model = document.getElementById('model').value;
+  const pricePer1k = model === 'gpt-4o' ? 0.005 : 0.0002;
+  const tokPerIter = (chars/4) * 2.5; // rough estimate input+output per iteration
+  const minCost = (tokPerIter * 2 / 1000 * pricePer1k).toFixed(3);
+  const maxCost = (tokPerIter * iters / 1000 * pricePer1k).toFixed(3);
+  document.getElementById('costMin').textContent = '$'+minCost;
+  document.getElementById('costMax').textContent = '$'+maxCost;
+  document.getElementById('costIter').textContent = iters;
+  document.getElementById('costEstimate').style.display = 'flex';
+}
+document.getElementById('maxIter').addEventListener('input', updateCostEstimate);
+document.getElementById('model').addEventListener('input', updateCostEstimate);
+
+// ═══════════════════════════════════════════════
+//  GO TO RUN TAB — build summary
+// ═══════════════════════════════════════════════
+function goToRun() {
+  const sum = criteria.reduce((a,c)=>a+c.weight,0);
+  if (sum !== 100) { alert('Los pesos de los criterios deben sumar 100%. Actualmente: '+sum+'%'); return; }
+  buildRunSummary();
+  showTab('run');
+}
+function buildRunSummary() {
+  const target = parseFloat(document.getElementById('scoreTarget').value);
+  const iters = parseInt(document.getElementById('maxIter').value);
+  const model = document.getElementById('model').value;
+  const critList = criteria.map(c=>`<span style="color:var(--accent)">${c.id}</span> ${c.name} (${c.weight}%)`).join(' · ');
+  document.getElementById('runSummary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">
+      <div>📄 <strong>Documento:</strong> ${docName} (${docText.length.toLocaleString()} chars)</div>
+      <div>🎯 <strong>Score objetivo:</strong> ${target}/10</div>
+      <div>🔢 <strong>Máx. iteraciones:</strong> ${iters}</div>
+      <div>🤖 <strong>Modelo:</strong> ${model}</div>
+      <div style="grid-column:1/-1">📋 <strong>Criterios:</strong> ${critList}</div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════════
+function log(msg, type='info') {
+  const el = document.getElementById('runLog');
+  if (!el) return;
+  const d = document.createElement('div');
+  d.className = 'll ' + (type||'info');
+  d.textContent = '[' + new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + '] ' + msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════
+//  PROGRESS STEPS
+// ═══════════════════════════════════════════════
+function setProgress(steps, activeIdx, pct, title, scoreStr) {
+  document.getElementById('progressTitle').textContent = title;
+  document.getElementById('progressScore').textContent = scoreStr || '';
+  document.getElementById('progFill').style.width = pct + '%';
+  const el = document.getElementById('progressSteps');
+  el.innerHTML = steps.map((s,i) => `
+    <div class="hp-step">
+      <div class="hp-dot ${i < activeIdx ? 'done' : i === activeIdx ? 'active' : ''}"></div>
+      <span class="hp-text ${i < activeIdx ? 'done' : i === activeIdx ? 'active' : ''}">${s}</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  OPENAI API CALL
+// ═══════════════════════════════════════════════
+async function callGPT(system, user, maxTokens=4000, _attempt=0) {
+  const key = document.getElementById('apiKey').value.trim();
+  const model = document.getElementById('model').value;
+  try {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body: JSON.stringify({model, max_tokens:maxTokens, temperature:0.3, messages:[
+        {role:'system',content:system},
+        {role:'user',content:user}
+      ]})
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({error:{message:resp.statusText}}));
+      const msg = err.error?.message || 'API error '+resp.status;
+      const status = resp.status;
+      // Retry on 429 (rate limit) or 5xx (server errors), up to 3 attempts
+      if (_attempt < 3 && (status === 429 || status >= 500)) {
+        const wait = Math.pow(2, _attempt+1) * 1000; // 2s, 4s, 8s
+        log(`  ⏳ Error ${status} — reintentando en ${wait/1000}s (intento ${_attempt+1}/3)...`, 'warn');
+        await new Promise(r => setTimeout(r, wait));
+        return callGPT(system, user, maxTokens, _attempt+1);
+      }
+      throw new Error(msg);
+    }
+    const data = await resp.json();
+    // M3: accumulate real token usage
+    if (data.usage) {
+      sessionTokens.prompt     += data.usage.prompt_tokens     || 0;
+      sessionTokens.completion += data.usage.completion_tokens || 0;
+      sessionTokens.calls++;
+      updateCostDisplay();
+    }
+    return data.choices[0].message.content.trim();
+  } catch(e) {
+    // Retry on network errors (TypeError: Failed to fetch)
+    if (_attempt < 3 && e.name === 'TypeError') {
+      const wait = Math.pow(2, _attempt+1) * 1000;
+      log(`  ⏳ Error de red — reintentando en ${wait/1000}s (intento ${_attempt+1}/3)...`, 'warn');
+      await new Promise(r => setTimeout(r, wait));
+      return callGPT(system, user, maxTokens, _attempt+1);
+    }
+    throw e;
+  }
+}
+function parseJSON(txt) {
+  // Step 1: strip markdown fences
+  txt = txt.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+
+  // Step 2: extract first complete JSON object (handles leading text)
+  const firstBrace = txt.indexOf('{');
+  if (firstBrace > 0) txt = txt.slice(firstBrace);
+
+  // Step 3: try direct parse
+  try { return JSON.parse(txt); } catch(e1) {}
+
+  // Step 4: find the last complete closing brace (handles truncated JSON)
+  let depth = 0, lastClose = -1;
+  let inStr = false, esc = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (esc) { esc = false; continue; }
+    if (c === '\\') { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) lastClose = i; }
+  }
+
+  if (lastClose > 0) {
+    const truncated = txt.slice(0, lastClose + 1);
+    try { return JSON.parse(truncated); } catch(e2) {}
+
+    // Step 5: close any open string then add closing braces
+    let fixed = truncated;
+    // Count unclosed strings
+    let inS = false, es = false, opens = 0;
+    for (const c of fixed) {
+      if (es) { es=false; continue; }
+      if (c==='\\') { es=true; continue; }
+      if (c==='"') inS=!inS;
+      if (!inS && c==='{') opens++;
+      if (!inS && c==='}') opens--;
+    }
+    if (inS) fixed += '"';
+    for (let k=0;k<opens;k++) fixed += '}';
+    try { return JSON.parse(fixed); } catch(e3) {}
+  }
+
+  // Step 6: last resort — extract key values with regex for known fields
+  const fallback = {};
+  const knownKeys = ['hipotesis','seccion','documento_mejorado','buscar','reemplazar',
+                     'score_total','criterio_mas_bajo','razon_mas_bajo','tipo','nombre','justificacion'];
+  knownKeys.forEach(k => {
+    const m = txt.match(new RegExp('"'+k+'"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"'));
+    if (m) fallback[k] = m[1].replace(/\\n/g,'\n').replace(/\\"/g,'"');
+    const mn = txt.match(new RegExp('"'+k+'"\\s*:\\s*([0-9.]+)'));
+    if (mn) fallback[k] = parseFloat(mn[1]);
+  });
+  // Extract scores object
+  const scoresM = txt.match(/"scores"\s*:\s*\{([^}]+)\}/);
+  if (scoresM) {
+    fallback.scores = {};
+    const pairs = scoresM[1].matchAll(/"(C\d+)"\s*:\s*([0-9.]+)/g);
+    for (const [,k,v] of pairs) fallback.scores[k] = parseFloat(v);
+  }
+  if (Object.keys(fallback).length > 0) {
+    console.warn('parseJSON: used regex fallback for:', Object.keys(fallback).join(','));
+    return fallback;
+  }
+
+  throw new Error('Could not parse JSON from model response. Raw: ' + txt.slice(0,200));
+}
+
+// ═══════════════════════════════════════════════
+//  SKILL PROMPT
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+//  LOG TOGGLE (fix: named function avoids 'this' scope bug)
+// ═══════════════════════════════════════════════
+function toggleLog() {
+  const logEl = document.getElementById('runLog');
+  const txtEl = document.getElementById('logToggleTxt');
+  logEl.classList.toggle('open');
+  txtEl.textContent = logEl.classList.contains('open') ? '▲ Ocultar log' : '▼ Ver log';
+}
+
+// ═══════════════════════════════════════════════
+//  DEFAULT PROMPTS
+// ═══════════════════════════════════════════════
+// (prompts declared at top of script)
+
+
+function initPromptEditors() {
+  document.getElementById('promptEvalSystem').value = prompts.evalSystem;
+  document.getElementById('promptEvalUser').value = prompts.evalUser;
+  document.getElementById('promptExpSystem').value = prompts.expSystem;
+  document.getElementById('promptExpUser').value = prompts.expUser;
+  document.getElementById('promptSkill').value = prompts.skill;
+}
+
+function savePrompts() {
+  prompts.evalSystem = document.getElementById('promptEvalSystem').value;
+  prompts.evalUser   = document.getElementById('promptEvalUser').value;
+  prompts.expSystem  = document.getElementById('promptExpSystem').value;
+  prompts.expUser    = document.getElementById('promptExpUser').value;
+  prompts.skill      = document.getElementById('promptSkill').value;
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✅ Guardado'; btn.disabled = true;
+  setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+}
+
+function resetPrompt(which) {
+  if (which === 'all' || which === 'eval') {
+    prompts.evalSystem = DEFAULT_PROMPTS.evalSystem;
+    prompts.evalUser   = DEFAULT_PROMPTS.evalUser;
+    document.getElementById('promptEvalSystem').value = prompts.evalSystem;
+    document.getElementById('promptEvalUser').value   = prompts.evalUser;
+  }
+  if (which === 'all' || which === 'exp') {
+    prompts.expSystem = DEFAULT_PROMPTS.expSystem;
+    prompts.expUser   = DEFAULT_PROMPTS.expUser;
+    document.getElementById('promptExpSystem').value = prompts.expSystem;
+    document.getElementById('promptExpUser').value   = prompts.expUser;
+  }
+  if (which === 'all' || which === 'skill') {
+    prompts.skill = DEFAULT_PROMPTS.skill;
+    document.getElementById('promptSkill').value = prompts.skill;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  EVALUATE
+// ═══════════════════════════════════════════════
+async function evaluate(text) {
+  const critStr = criteria.map(c=>`${c.id} ${c.name} (${c.weight}%): ${c.desc}`).join('\n');
+
+  // M8: For long documents, split into chunks and aggregate scores
+  const CHUNK_LIMIT = 6000;
+  if (text.length > CHUNK_LIMIT * 1.5) {
+    return evaluateChunked(text, critStr);
+  }
+
+  const userPrompt = (prompts._evalUserRuntime || prompts.evalUser)
+    .replace('{CRITERIOS}', critStr)
+    .replace('{DOCUMENTO}', text.slice(0, CHUNK_LIMIT));
+  const raw = await callGPT(prompts.evalSystem, userPrompt, 600);
+  const data = parseJSON(raw);
+  let total = 0;
+  criteria.forEach(c => { total += (data.scores[c.id]||0) * c.weight/100; });
+  data.score_total = Math.round(total*100)/100;
+  return data;
+}
+
+// M8: Chunked evaluation — split by markdown headings or fixed size
+async function evaluateChunked(text, critStr) {
+  // Split on markdown headings or every ~5000 chars
+  let chunks = text.split(/\n(?=#{1,3} )/).filter(c => c.trim().length > 100);
+  if (chunks.length < 2) {
+    // Fixed-size chunking
+    chunks = [];
+    for (let i = 0; i < text.length; i += 5000) chunks.push(text.slice(i, i+5500));
+  }
+  // Max 4 chunks to control cost
+  if (chunks.length > 4) {
+    const step = Math.floor(chunks.length / 4);
+    chunks = [chunks[0], chunks[step], chunks[step*2], chunks[chunks.length-1]];
+  }
+  log(`  📄 Documento largo: evaluando ${chunks.length} secciones...`, 'info');
+
+  const chunkPromise = chunks.map(async (chunk, idx) => {
+    const p = `Evalúa este fragmento (sección ${idx+1}/${chunks.length}) del documento con la rúbrica dada.
+Responde SOLO JSON: {"scores":{"C1":X,...},"notas":"observación breve"}
+CRITERIOS:\n${critStr}\nFRAGMENTO:\n${chunk.slice(0,4000)}`;
+    const raw = await callGPT('Eres evaluador experto. SOLO JSON sin markdown.', p, 400);
+    return parseJSON(raw);
+  });
+
+  const results = await Promise.all(chunkPromise);
+
+  // Aggregate: average scores across chunks, weighted by chunk length
+  const weights = chunks.map(c => c.length);
+  const totalW = weights.reduce((a,b)=>a+b,0);
+  const merged = {scores:{}, criterio_mas_bajo:'', razon_mas_bajo:'Evaluación agregada de múltiples secciones'};
+
+  criteria.forEach(c => {
+    const wavg = results.reduce((sum, r, i) =>
+      sum + (r.scores?.[c.id]||0) * weights[i], 0) / totalW;
+    merged.scores[c.id] = Math.round(wavg * 10) / 10;
+  });
+
+  let total = 0;
+  criteria.forEach(c => { total += (merged.scores[c.id]||0) * c.weight/100; });
+  merged.score_total = Math.round(total*100)/100;
+
+  // Find weakest
+  const weakest = criteria.reduce((min,c) =>
+    (merged.scores[c.id]||0) < (merged.scores[min.id]||0) ? c : min, criteria[0]);
+  merged.criterio_mas_bajo = weakest.id;
+
+  return merged;
+}
+
+// ═══════════════════════════════════════════════
+//  EVALUATE PARTIAL (M4 — re-score only the targeted criterion)
+// ═══════════════════════════════════════════════
+async function evaluatePartial(text, prevScores, targetCriterion) {
+  const targetCrit = criteria.find(c => c.id === targetCriterion);
+  if (!targetCrit) return evaluate(text); // fallback to full eval
+
+  // Only ask about the target criterion + a quick "did anything else drop?" check
+  const allCritStr = criteria.map(c=>`${c.id} ${c.name} (${c.weight}%): ${c.desc}`).join('\n');
+  const prompt = `Evalúa SOLO el criterio ${targetCrit.id} ("${targetCrit.name}") del documento, y verifica brevemente que los demás criterios no hayan empeorado significativamente (>0.5 puntos).
+
+Criterio principal a evaluar:
+${targetCrit.id} ${targetCrit.name} (${targetCrit.weight}%): ${targetCrit.desc}
+
+Todos los criterios de referencia:
+${allCritStr}
+
+Scores anteriores de referencia: ${JSON.stringify(prevScores)}
+
+Responde SOLO JSON:
+{"scores":{"${targetCrit.id}":X,...otros_si_cambiaron},"razon":"una frase"}
+
+DOCUMENTO:
+${text.slice(0, 6000)}`;
+
+  const raw = await callGPT('Eres evaluador experto. Responde SOLO JSON sin markdown.', prompt, 400);
+  const partial = parseJSON(raw);
+
+  // Merge: start from previous scores, apply any updated ones
+  const mergedScores = {...prevScores, ...partial.scores};
+  let total = 0;
+  criteria.forEach(c => { total += (mergedScores[c.id]||0) * c.weight/100; });
+
+  // Find new weakest
+  const weakest = criteria.reduce((min, c) =>
+    (mergedScores[c.id]||0) < (mergedScores[min.id]||0) ? c : min, criteria[0]);
+
+  return {
+    scores: mergedScores,
+    score_total: Math.round(total*100)/100,
+    criterio_mas_bajo: weakest.id,
+    razon_mas_bajo: partial.razon || '—'
+  };
+}
+
+// ═══════════════════════════════════════════════
+//  GENERATE EXPERIMENT
+// ═══════════════════════════════════════════════
+async function generateExperiment(text, evalData, history) {
+  const constraints = document.getElementById('constraints').value.trim();
+  // M2: rolling summary; M6: adaptive targeting
+  const adaptedEval = getTargetCriterion(evalData, history);
+  evalData = adaptedEval;
+  const histStr = buildRollingSummary(history);
+  const critStr = criteria.map(c=>`${c.id} ${c.name} (${c.weight}%): ${c.desc}`).join('\n');
+  const restriccionesStr = constraints ? 'RESTRICCIONES (nunca modificar):\n' + constraints : '';
+
+  // ── WEB SEARCH: get real-world context before generating hypothesis ──
+  const searchResult = await searchForContext(
+    history.length,
+    evalData.criterio_mas_bajo,
+    evalData.razon_mas_bajo,
+    text
+  );
+  const contextoWeb = searchResult.context
+    ? `\n\nCONTEXTO DE BÚSQUEDA WEB (usa esta evidencia para fundamentar tu hipótesis y cambio):\n${searchResult.context}`
+    : '';
+  const fuentesStr = searchResult.sources && searchResult.sources.length
+    ? `\n\nFUENTES DISPONIBLES PARA CITAR:\n${searchResult.sources.map((s,i)=>`[${i+1}] ${s}`).join('\n')}`
+    : '';
+
+  const useDiff = text.length > 6000;
+
+  let userPrompt = (prompts._expUserRuntime || prompts.expUser)
+    .replace('{SKILL}', prompts.skill)
+    .replace('{CRITERIO_BAJO}', evalData.criterio_mas_bajo)
+    .split('{CRITERIO_BAJO}').join(evalData.criterio_mas_bajo)
+    .replace('{RAZON}', evalData.razon_mas_bajo)
+    .replace('{CRITERIOS}', critStr)
+    .replace('{HISTORIAL}', histStr)
+    .replace('{RESTRICCIONES}', restriccionesStr)
+    .replace('{CONTEXTO_WEB}', contextoWeb)
+    .replace('{FUENTES}', fuentesStr)
+    .replace('{DOCUMENTO}', text.slice(0, 12000));
+
+  // If prompt does not use {CONTEXTO_WEB}, append context at end
+  if (!prompts.expUser.includes('{CONTEXTO_WEB}') && contextoWeb) {
+    userPrompt += contextoWeb + fuentesStr;
+  }
+
+  if (useDiff) {
+    userPrompt = userPrompt.replace(
+      '{"hipotesis":"descripción precisa del cambio aplicado","seccion":"nombre de la sección modificada","documento_mejorado":"el documento COMPLETO con el cambio aplicado"}\n\nSi el documento es largo, el sistema te pedirá solo "buscar"/"reemplazar" en lugar del documento completo.',
+      '{"hipotesis":"descripción precisa del cambio aplicado","seccion":"nombre de la sección modificada","buscar":"texto EXACTO a reemplazar (máx 400 chars)","reemplazar":"nuevo texto que lo sustituye"}'
+    );
+    userPrompt += '\n\nIMPORTANTE: El documento es largo. Devuelve SOLO "buscar" y "reemplazar", NO el documento completo.';
+  }
+
+  const maxTok = useDiff ? 1200 : Math.min(4000, Math.max(2000, Math.floor(text.length / 3)));
+  const raw = await callGPT(prompts.expSystem, userPrompt, maxTok);
+  const parsed = parseJSON(raw);
+
+  // Attach search metadata for experiment log
+  if (searchResult.sources && searchResult.sources.length) parsed._fuentes = searchResult.sources;
+  if (searchResult.query) parsed._searchQuery = searchResult.query;
+
+  // Apply diff
+  if (useDiff && parsed.buscar && parsed.reemplazar) {
+    if (text.includes(parsed.buscar)) {
+      parsed.documento_mejorado = text.replace(parsed.buscar, parsed.reemplazar);
+    } else {
+      const trimmed = parsed.buscar.trim();
+      if (text.includes(trimmed)) {
+        parsed.documento_mejorado = text.replace(trimmed, parsed.reemplazar);
+      } else {
+        throw new Error('El fragmento "buscar" no se encontró en el documento. Reintentando en el siguiente ciclo.');
+      }
+    }
+  }
+
+  return parsed;
+}
+
+// ═══════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════
+async function startLoop() {
+  if (isRunning) return;
+  if (!docText) { alert('Primero sube un documento.'); showTab('config'); return; }
+  const sumW = criteria.reduce((a,c)=>a+c.weight,0);
+  if (sumW !== 100) { alert('Los pesos deben sumar 100%. Actualmente: '+sumW+'%'); showTab('rubric'); return; }
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { alert('Introduce tu API key de OpenAI.'); showTab('config'); return; }
+
+  isRunning = true; shouldStop = false;
+  expLog = []; finalText = docText;
+  resetCostTracking(); // M3: reset per session
+  searchLog = []; // reset search log per session
+  document.getElementById('searchBadge').style.display='none';
+  // M9: snapshot active prompts for reproducibility
+  const promptSnapshot = {
+    evalSystem: prompts.evalSystem,
+    evalUser:   prompts.evalUser,
+    expSystem:  prompts.expSystem,
+    expUser:    prompts.expUser,
+    skill:      prompts.skill
+  };
+
+  // M8: Inject language instruction into prompts if non-Spanish doc
+  if (detectedLang && detectedLang !== 'es') {
+    const langNames = {en:'English',fr:'French',de:'German',it:'Italian',pt:'Portuguese'};
+    const langName = langNames[detectedLang] || detectedLang;
+    const langNote = `\n\nIMPORTANT: The document is in ${langName}. Write your hypothesis, section name, and all document changes in ${langName}.`;
+    prompts._evalUserRuntime = prompts.evalUser + langNote;
+    prompts._expUserRuntime  = prompts.expUser  + langNote;
+    log(`🌐 Prompts ajustados para idioma: ${langName}`, 'info');
+  } else {
+    prompts._evalUserRuntime = null;
+    prompts._expUserRuntime  = null;
+  }
+  const target = parseFloat(document.getElementById('scoreTarget').value);
+  const maxIter = parseInt(document.getElementById('maxIter').value);
+
+  document.getElementById('btnRun').disabled = true;
+  document.getElementById('btnStop').disabled = false;
+  document.getElementById('btnRunBig').disabled = true;
+  document.getElementById('btnStopBig').disabled = false;
+  document.getElementById('resultsBadge').style.display = 'none';
+  document.getElementById('runLog').innerHTML = '';
+
+  showTab('run');
+
+  const steps = ['Evaluando baseline...'];
+  setProgress(steps, 0, 5, 'Iniciando...', '');
+  log('🚀 Iniciando AutoResearch loop', 'info');
+  log(`📋 Documento: ${docName} (${docText.length} chars)`, 'info');
+  log(`🎯 Objetivo: ${target}/10 · Máx. ${maxIter} iteraciones`, 'info');
+
+  try {
+    // ── BASELINE ──
+    log('🔍 Evaluando baseline...', 'info');
+    const evalBase = await evaluate(docText);
+    baselineScore = evalBase.score_total;
+    currentScore = baselineScore;
+    expLog.push({exp_id:0, score_total:baselineScore, scores:{...evalBase.scores}, hipotesis:'Baseline — documento original', seccion:'—', resultado:'BASELINE', ts: new Date().toLocaleTimeString('es')});
+    log(`📊 Baseline: ${baselineScore.toFixed(2)}/10 | Criterio más débil: ${evalBase.criterio_mas_bajo}`, baselineScore >= target ? 'ok' : 'warn');
+    setProgress(['Baseline establecido'], 0, 10, `Baseline: ${baselineScore.toFixed(2)}/10`, `Objetivo: ${target}/10`);
+
+    if (baselineScore >= target) {
+      log(`✅ El documento ya alcanza el objetivo (${baselineScore.toFixed(2)} ≥ ${target}). No se requieren iteraciones.`, 'ok');
+      finalText = docText;
+      finishLoop(true);
+      return;
+    }
+
+    // ── LOOP ──
+    let textActual = docText;
+    let scoreAnterior = baselineScore;
+    // B1: Reuse eval from previous iteration — avoids double API call per loop
+    let evalCurrent = evalBase; // start with baseline eval
+    for (let i = 1; i <= maxIter; i++) {
+      if (shouldStop) { log('⏹ Detenido por el usuario.', 'warn'); break; }
+
+      const progPct = 10 + Math.round((i/maxIter)*85);
+      const stepLabel = `EXP_${String(i).padStart(3,'0')} / ${maxIter}`;
+      setProgress([`Experimento ${i} de ${maxIter}`, `Score actual: ${scoreAnterior.toFixed(2)}/10`, `Objetivo: ${target}/10`], 1, progPct, stepLabel, `${scoreAnterior.toFixed(2)} → ${target}`);
+
+      log(`\n▶ EXP_${String(i).padStart(3,'0')}`, 'info');
+      // evalCurrent is already known from previous iteration (or baseline) — no extra API call
+      if (shouldStop) break;
+
+      log(`  Criterio débil: ${evalCurrent.criterio_mas_bajo} (${(evalCurrent.scores[evalCurrent.criterio_mas_bajo]||0).toFixed(1)}/10) — ${evalCurrent.razon_mas_bajo}`, 'info');
+
+      // Generate experiment
+      log('  Generando hipótesis...', 'info');
+      let experiment;
+      try {
+        experiment = await generateExperiment(textActual, evalCurrent, expLog);
+      } catch(e) {
+        log('  ⚠️ Error generando experimento: ' + e.message + '. Saltando.', 'warn');
+        continue;
+      }
+      if (shouldStop) break;
+
+      const hipotesis = experiment.hipotesis || '—';
+      const docCandidato = experiment.documento_mejorado || textActual;
+      log(`  Hipótesis: ${hipotesis}`, 'info');
+
+      // M4: Partial evaluation — only re-score the targeted criterion + verify others didn't drop
+      log('  Evaluando candidato (evaluación parcial)...', 'info');
+      let evalNuevo, scoreNuevo;
+      try {
+        const criterioAtacado = evalActual.criterio_mas_bajo;
+        evalNuevo = await evaluatePartial(docCandidato, evalActual.scores, criterioAtacado);
+        scoreNuevo = evalNuevo.score_total;
+      } catch(e) {
+        log('  ⚠️ Error evaluando: ' + e.message + '. Revertiendo.', 'warn');
+        scoreNuevo = 0; evalNuevo = {scores:{}};
+      }
+      if (shouldStop) break;
+
+      const mejora = scoreNuevo - scoreAnterior;
+      let resultado;
+      if (scoreNuevo > scoreAnterior) {
+        resultado = 'CONSERVADO';
+        textActual = docCandidato;
+        finalText = docCandidato;
+        scoreAnterior = scoreNuevo;
+        currentScore = scoreNuevo;
+        evalCurrent = evalNuevo; // B1: carry forward — no need to re-eval next iteration
+        log(`  ✅ CONSERVADO  ${scoreAnterior.toFixed(2)}/10  (+${mejora.toFixed(2)})`, 'ok');
+      } else {
+        resultado = 'REVERTIDO';
+        // evalCurrent stays the same — document didn't change
+        log(`  ❌ REVERTIDO   candidato: ${scoreNuevo.toFixed(2)}/10  (${mejora.toFixed(2)})`, 'warn');
+      }
+
+      expLog.push({exp_id:i, score_total:scoreNuevo, scores:{...(evalNuevo.scores||{})}, hipotesis, seccion:experiment.seccion||'—', resultado, criterio_atacado: evalActual.criterio_mas_bajo, fuentes: experiment._fuentes||[], searchQuery: experiment._searchQuery||'', ts:new Date().toLocaleTimeString('es'), promptSnap: promptSnapshot});
+      saveSession(); // M5: persist after each experiment
+      renderResults();
+
+      if (scoreAnterior >= target) {
+        log(`\n🎯 Objetivo alcanzado: ${scoreAnterior.toFixed(2)} ≥ ${target}`, 'ok');
+        break;
+      }
+    }
+    finishLoop(false);
+
+  } catch(e) {
+    log('❌ Error: ' + e.message, 'err');
+    if (e.message.includes('401')) log('💡 API key incorrecta. Verifica en platform.openai.com/api-keys', 'warn');
+    else if (e.message.includes('429')) log('💡 Rate limit. Espera unos segundos e inténtalo de nuevo.', 'warn');
+    else if (e.message.includes('insufficient_quota')) log('💡 Cuota agotada. Añade créditos en platform.openai.com/billing', 'warn');
+    finishLoop(false);
+  }
+}
+
+function stopLoop() { shouldStop = true; log('⏹ Solicitando detención...', 'warn'); }
+
+function finishLoop(earlyStop) {
+  isRunning = false; shouldStop = false;
+  document.getElementById('btnRun').disabled = false;
+  document.getElementById('btnStop').disabled = true;
+  document.getElementById('btnRunBig').disabled = false;
+  document.getElementById('btnStopBig').disabled = true;
+
+  const kept = expLog.filter(r=>r.resultado==='CONSERVADO');
+  const reverted = expLog.filter(r=>r.resultado==='REVERTIDO');
+  const reached = currentScore >= parseFloat(document.getElementById('scoreTarget').value);
+
+  setProgress(
+    [earlyStop ? 'Objetivo ya alcanzado en baseline' : (reached ? '¡Objetivo alcanzado!' : 'Loop completado'), `Score final: ${currentScore.toFixed(2)}/10`, `Mejora total: +${(currentScore-baselineScore).toFixed(2)}`],
+    reached ? 3 : 2, 100,
+    reached ? '✅ Objetivo alcanzado' : '📊 Loop completado',
+    `${baselineScore.toFixed(2)} → ${currentScore.toFixed(2)}`
+  );
+  log(`\n━━━ RESULTADO FINAL ━━━━━━━━━━━━━━━━━━━━━`, 'ok');
+  log(`Baseline: ${baselineScore.toFixed(2)}/10`, 'info');
+  log(`Score final: ${currentScore.toFixed(2)}/10 (+${(currentScore-baselineScore).toFixed(2)})`, 'ok');
+  log(`Objetivo: ${document.getElementById('scoreTarget').value}/10 → ${reached ? '✅ ALCANZADO' : '⏳ No alcanzado'}`, reached?'ok':'warn');
+  log(`Experimentos: ${expLog.length-1} total · ${kept.length} conservados · ${reverted.length} revertidos`, 'info');
+
+  document.getElementById('resultsBadge').style.display = '';
+  renderResults();
+  renderDoc();
+  saveSession(); // M5: persist completed session
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER RESULTS TABLE
+// ═══════════════════════════════════════════════
+function renderResults() {
+  if (!expLog.length) return;
+  const target = parseFloat(document.getElementById('scoreTarget').value);
+  const kept = expLog.filter(r=>r.resultado==='CONSERVADO');
+  const reverted = expLog.filter(r=>r.resultado==='REVERTIDO');
+
+  let statsHtml = `<div class="stats-row fi">
+    <div class="stat"><div class="sv">${baselineScore.toFixed(2)}</div><div class="sl">Baseline</div></div>
+    <div class="stat"><div class="sv" style="color:var(--teal)">${currentScore.toFixed(2)}</div><div class="sl">Score final</div></div>
+    <div class="stat"><div class="sv" style="color:var(--green)">+${(currentScore-baselineScore).toFixed(2)}</div><div class="sl">Mejora total</div></div>
+    <div class="stat"><div class="sv" style="color:var(--accent)">${kept.length}</div><div class="sl">Conservados</div></div>
+    <div class="stat"><div class="sv" style="color:var(--amber)">${reverted.length}</div><div class="sl">Revertidos</div></div>
+  </div>`;
+
+  // Score progress bar
+  const pct = Math.min(100, Math.round((currentScore-baselineScore)/(target-baselineScore)*100));
+  statsHtml += `<div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:6px">
+      <span>Progreso hacia objetivo (${target}/10)</span><span>${pct}%</span>
+    </div>
+    <div class="score-bar-wrap" style="height:8px"><div class="score-bar" style="width:${pct}%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:4px"><span>Baseline: ${baselineScore.toFixed(2)}</span><span>Actual: ${currentScore.toFixed(2)}</span><span>Objetivo: ${target}</span></div>
+  </div>`;
+
+  // Table
+  const cids = criteria.map(c=>c.id);
+  let tHead = '<tr><th>Exp</th><th>Score</th>' + criteria.map(c=>`<th>${c.id}<br><span style="text-transform:none;font-weight:400">${c.name}</span></th>`).join('') + '<th>Hipótesis</th><th>Sección</th><th>Resultado</th><th>Hora</th><th>Fuentes</th><th>Prompts</th></tr>';
+  let tBody = expLog.map(r => {
+    const rowClass = r.resultado==='CONSERVADO'?'row-kept':r.resultado==='REVERTIDO'?'row-rev':'row-base';
+    const badgeClass = r.resultado==='CONSERVADO'?'b-kept':r.resultado==='REVERTIDO'?'b-rev':'b-base';
+    const scoreCol = `<td><strong>${r.score_total.toFixed(2)}</strong><div class="score-bar-wrap"><div class="score-bar" style="width:${r.score_total*10}%"></div></div></td>`;
+    const critCols = cids.map(id=>`<td>${(r.scores[id]||'-')}</td>`).join('');
+    const delta = r.exp_id > 0 && expLog[r.exp_id-1] ? (r.score_total - expLog[r.exp_id-1].score_total) : 0;
+    const deltaStr = r.exp_id > 0 ? `<span style="color:${delta>0?'var(--teal)':'var(--amber)'}"> (${delta>0?'+':''}${delta.toFixed(2)})</span>` : '';
+    const promptBtn = r.promptSnap ? `<td><button class="btn btn-sm" onclick="restorePromptSnap(${r.exp_id})" title="Restaurar los prompts usados en este experimento">↺</button></td>` : '<td>—</td>';
+    const fuentesCell = r.fuentes && r.fuentes.length
+      ? `<td style="font-size:10px;color:var(--t3);max-width:160px" title="${r.fuentes.join('\n')}">📚 ${r.fuentes.length} fuente${r.fuentes.length>1?'s':''}</td>`
+      : '<td style="color:var(--t3);font-size:11px">—</td>';
+    return `<tr class="${rowClass}"><td><strong>EXP_${String(r.exp_id).padStart(3,'0')}</strong></td>${scoreCol}${critCols}<td style="max-width:220px;font-size:11px">${r.hipotesis}${deltaStr}</td><td style="font-size:11px;color:var(--t3)">${r.seccion}</td><td><span class="badge ${badgeClass}">${r.resultado}</span></td><td style="color:var(--t3);font-size:11px">${r.ts}</td>${fuentesCell}${promptBtn}</tr>`;
+  }).join('');
+
+  document.getElementById('resultsContent').innerHTML = statsHtml + `
+    <div class="sh" style="margin-top:0">📈 Evolución del score</div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="scoreChart"></canvas></div>
+    <div style="font-size:10px;color:var(--t3);margin-top:6px">● Verde = conservado · ● Rojo = revertido · — Línea amarilla = objetivo</div></div>
+    <div class="sh">📊 Análisis por criterio (baseline vs final)</div>
+    <div class="radar-wrap" id="radarWrap">
+      <div class="radar-canvas-wrap"><canvas id="radarChart"></canvas></div>
+      <div class="radar-legend" id="radarLegend"></div>
+    </div>
+    <div class="sh">Tabla de experimentos</div>
+    <div class="results-table-wrap"><table class="rt"><thead>${tHead}</thead><tbody>${tBody}</tbody></table></div>
+    <div class="export-row">
+      <button class="btn" onclick="exportCSV()">⬇ CSV</button>
+      <button class="btn" onclick="exportMD()">⬇ Markdown</button>
+      <button class="btn btn-success" onclick="showTab('doc')">📄 Ver documento mejorado →</button>
+    </div>`;
+  // M3: draw score evolution chart
+  setTimeout(() => { drawScoreChart(); drawRadarChart(); buildRadarLegend(); }, 60);
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER FINAL DOC
+// ═══════════════════════════════════════════════
+function renderDoc() {
+  const fmt = document.getElementById('outputFmt').value;
+  const wc = finalText.trim().split(/\s+/).length;
+  const wcOrig = docText.trim().split(/\s+/).length;
+  const wcDelta = wc - wcOrig;
+  document.getElementById('docContent').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:15px;font-weight:500;color:var(--text)">Documento mejorado</div>
+        <div style="font-size:11px;color:var(--t3)">Score: ${baselineScore.toFixed(2)} → ${currentScore.toFixed(2)}/10 (+${(currentScore-baselineScore).toFixed(2)}) · ${wc.toLocaleString()} palabras (${wcDelta>=0?'+':''}${wcDelta}) · ${detectedLang.toUpperCase()}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span id="editStatus" style="font-size:11px;color:var(--t3)"></span>
+        <button class="btn btn-sm" id="btnEdit" onclick="toggleDocEdit()">✏️ Editar</button>
+      </div>
+    </div>
+    <div class="diff-tabs">
+      <div class="diff-tab" onclick="switchDiffView('pre',this)">📄 Original</div>
+      <div class="diff-tab active" onclick="switchDiffView('fin',this)">✅ Mejorado</div>
+      <div class="diff-tab" onclick="switchDiffView('diff',this)">🔀 Diff</div>
+    </div>
+    <div id="diffPre" style="display:none" class="doc-area">${escHtml(docText)}</div>
+    <div id="diffFin" class="doc-area fi" id="docFinalEditable" spellcheck="true">${escHtml(finalText)}</div>
+    <div id="diffContent" style="display:none"></div>
+    <div class="export-row" style="margin-top:14px">
+      <button class="btn btn-primary" onclick="downloadDoc()">⬇ Descargar .${fmt}</button>
+      <button class="btn" onclick="copyDoc()">📋 Copiar</button>
+      <button class="btn btn-success" onclick="downloadDoc('md')">⬇ Markdown</button>
+      <button class="btn" onclick="exportReport()">📑 Informe PDF</button>
+    </div>`;
+  // Wire up live save from contenteditable
+  const editable = document.getElementById('docFinalEditable');
+  if (editable) {
+    editable.addEventListener('input', () => {
+      finalText = editable.innerText;
+      document.getElementById('editStatus').textContent = '● Cambios sin guardar';
+      document.getElementById('editStatus').style.color = 'var(--amber)';
+    });
+  }
+}
+
+function toggleDocEdit() {
+  const el = document.getElementById('docFinalEditable');
+  const btn = document.getElementById('btnEdit');
+  const status = document.getElementById('editStatus');
+  if (!el) return;
+  const isEditing = el.contentEditable === 'true';
+  if (isEditing) {
+    el.contentEditable = 'false';
+    el.style.outline = '';
+    btn.textContent = '✏️ Editar';
+    finalText = el.innerText;
+    saveSession();
+    status.textContent = '✅ Guardado';
+    status.style.color = 'var(--teal)';
+    setTimeout(() => { if(status) status.textContent = ''; }, 2000);
+  } else {
+    el.contentEditable = 'true';
+    el.style.outline = '2px solid var(--accent)';
+    el.style.borderRadius = 'var(--r)';
+    el.focus();
+    btn.textContent = '💾 Guardar';
+    status.textContent = 'Modo edición activo';
+    status.style.color = 'var(--accent)';
+  }
+}
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════
+function downloadDoc(forceFmt) {
+  const fmt = forceFmt || document.getElementById('outputFmt').value;
+  const stem = (docName||'documento').replace(/\.[^.]+$/,'');
+  let content = finalText, type = 'text/plain', ext = fmt;
+  if (fmt === 'doc') {
+    const date = new Date().toLocaleDateString('es');
+    const htmlLines = finalText.split('\n').map(line=>{
+      if(line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
+      if(line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+      if(line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+      if(line.startsWith('- ')) return `<li>${line.slice(2)}</li>`;
+      return line ? `<p>${line}</p>` : '';
+    }).join('\n');
+    content = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{margin:2.5cm 3cm}body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.6}h1{font-size:18pt}h2{font-size:14pt}p{text-align:justify}</style></head><body><p style="font-style:italic;color:#666">AutoResearch · ${date} · Score: ${currentScore.toFixed(2)}/10</p>${htmlLines}</body></html>`;
+    type = 'application/msword'; ext = 'doc';
+  } else if (fmt === 'md') {
+    type = 'text/markdown'; ext = 'md';
+  }
+  const blob = new Blob([content],{type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${stem}_mejorado.${ext}`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+// ════════════════════════════════════════════════
+//  M10: EXPORT FULL REPORT (printable HTML → PDF)
+// ════════════════════════════════════════════════
+function exportReport() {
+  const fmt = document.getElementById('outputFmt').value;
+  const date = new Date().toLocaleDateString('es',{day:'2-digit',month:'long',year:'numeric'});
+  const cids = criteria.map(c=>c.id);
+  const target = document.getElementById('scoreTarget').value;
+
+  // Build criteria table rows
+  const critHeader = `<tr><th>Exp</th><th>Score</th>${criteria.map(c=>`<th>${c.id}<br><small>${c.name}</small></th>`).join('')}<th>Hipótesis</th><th>Resultado</th></tr>`;
+  const critRows = expLog.map(r => {
+    const bg = r.resultado==='CONSERVADO'?'#f0fdf4':r.resultado==='REVERTIDO'?'#fef9c3':'#f0f9ff';
+    return `<tr style="background:${bg}"><td><b>EXP_${String(r.exp_id).padStart(3,'0')}</b></td><td><b>${r.score_total.toFixed(2)}</b></td>${cids.map(id=>`<td>${r.scores[id]||'-'}</td>`).join('')}<td>${r.hipotesis}</td><td>${r.resultado}</td></tr>`;
+  }).join('');
+
+  // Score sparkline as SVG
+  const W=400, H=80, PAD=10;
+  const pts = expLog.map((r,i)=>{
+    const x = PAD + (i/(expLog.length-1||1))*(W-2*PAD);
+    const y = PAD + (1-r.score_total/10)*(H-2*PAD);
+    return `${x},${y}`;
+  }).join(' ');
+  const tY = PAD + (1-parseFloat(target)/10)*(H-2*PAD);
+  const sparkline = `<svg width="${W}" height="${H}" style="border:1px solid #e5e7eb;border-radius:6px;background:#fafafa">
+    <line x1="${PAD}" y1="${tY}" x2="${W-PAD}" y2="${tY}" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="2"/>
+    ${expLog.map((r,i)=>{
+      const x=PAD+(i/(expLog.length-1||1))*(W-2*PAD);
+      const y=PAD+(1-r.score_total/10)*(H-2*PAD);
+      const col=r.resultado==='CONSERVADO'?'#16a34a':r.resultado==='REVERTIDO'?'#dc2626':'#6366f1';
+      return `<circle cx="${x}" cy="${y}" r="3.5" fill="${col}" stroke="white" stroke-width="1.5"/>`;
+    }).join('')}
+  </svg>`;
+
+  const reportHtml = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>AutoResearch — Informe de sesión</title>
+<style>
+  @page{margin:2cm 2.5cm}
+  body{font-family:"Helvetica Neue",Arial,sans-serif;font-size:12pt;color:#111;line-height:1.6}
+  h1{font-size:22pt;color:#1d4ed8;margin-bottom:4px}
+  h2{font-size:14pt;color:#374151;border-bottom:2px solid #e5e7eb;padding-bottom:6px;margin-top:28px}
+  .meta{color:#6b7280;font-size:10pt;margin-bottom:28px}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+  .stat{background:#f3f4f6;border-radius:8px;padding:12px;text-align:center}
+  .sv{font-size:20pt;font-weight:700;color:#1d4ed8}.sl{font-size:9pt;color:#6b7280}
+  table{width:100%;border-collapse:collapse;font-size:9pt;margin-top:12px}
+  th{background:#f3f4f6;padding:6px 8px;text-align:left;border:1px solid #e5e7eb;font-size:8pt}
+  td{padding:5px 8px;border:1px solid #e5e7eb;vertical-align:top}
+  .doc{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px;font-size:10pt;white-space:pre-wrap;word-wrap:break-word;margin-top:12px;max-height:none}
+  @media print{.no-print{display:none}body{font-size:10pt}}
+</style>
+</head>
+<body>
+<h1>🔄 AutoResearch — Informe de sesión</h1>
+<div class="meta">
+  Generado el ${date} · Documento: <strong>${docName}</strong> · Idioma: ${detectedLang.toUpperCase()} · Modelo: ${document.getElementById('model').value}
+</div>
+
+<h2>Resumen ejecutivo</h2>
+<div class="stats">
+  <div class="stat"><div class="sv">${baselineScore.toFixed(2)}</div><div class="sl">Score baseline</div></div>
+  <div class="stat"><div class="sv" style="color:#059669">${currentScore.toFixed(2)}</div><div class="sl">Score final</div></div>
+  <div class="stat"><div class="sv" style="color:#16a34a">+${(currentScore-baselineScore).toFixed(2)}</div><div class="sl">Mejora</div></div>
+  <div class="stat"><div class="sv">${expLog.filter(r=>r.resultado==='CONSERVADO').length}</div><div class="sl">Conservados</div></div>
+  <div class="stat"><div class="sv">${expLog.filter(r=>r.resultado==='REVERTIDO').length}</div><div class="sl">Revertidos</div></div>
+</div>
+${sparkline}
+<p style="font-size:9pt;color:#9ca3af;margin-top:4px">Evolución del score por experimento · ● verde=conservado · ● rojo=revertido · — amarillo=objetivo (${target})</p>
+
+<h2>Rúbrica utilizada</h2>
+<table><tr><th>ID</th><th>Criterio</th><th>Peso</th><th>Descripción</th><th>Score baseline</th><th>Score final</th></tr>
+${criteria.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.weight}%</td><td>${c.desc}</td><td>${(expLog[0]?.scores[c.id]||'-')}</td><td>${(expLog[expLog.length-1]?.scores[c.id]||'-')}</td></tr>`).join('')}
+</table>
+
+<h2>Tabla de experimentos</h2>
+<table><thead>${critHeader}</thead><tbody>${critRows}</tbody></table>
+
+${searchLog.length ? `<h2>Búsquedas web realizadas (${searchLog.length})</h2>
+<table><tr><th>Exp</th><th>Query</th><th>Fuentes encontradas</th></tr>
+${searchLog.map(e=>`<tr><td>EXP_${String(e.expId).padStart(3,'0')}</td><td>${e.query}</td><td style="font-size:9pt">${e.results.slice(0,3).map(r=>`${r.title}${r.year?' ('+r.year+')':''}`).join('<br>')}</td></tr>`).join('')}
+</table>` : ''}
+
+<h2>Documento mejorado</h2>
+<div class="doc">${finalText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+
+<script>window.onload=function(){window.print()}<\/script>
+</body></html>`;
+
+  const blob = new Blob([reportHtml], {type:'text/html'});
+  const w = window.open('','_blank');
+  if (w) {
+    w.document.write(reportHtml);
+    w.document.close();
+  } else {
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=(docName||'documento').replace(/\.[^.]+$/,'')+'_informe.html';
+    a.click();
+  }
+}
+
+function copyDoc() {
+  // M4: use current editable content if editing
+  const editable = document.getElementById('docFinalEditable');
+  const text = (editable && editable.contentEditable==='true') ? editable.innerText : finalText;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = event.target; const o=btn.textContent;
+    btn.textContent='✅ Copiado!'; setTimeout(()=>btn.textContent=o,2000);
+  });
+}
+// ════════════════════════════════════════════════
+//  M9: RESTORE PROMPT SNAPSHOT FROM EXPERIMENT
+// ════════════════════════════════════════════════
+function restorePromptSnap(expId) {
+  const entry = expLog.find(r => r.exp_id === expId);
+  if (!entry || !entry.promptSnap) { alert('No hay snapshot de prompts para EXP_'+expId); return; }
+  const snap = entry.promptSnap;
+  prompts.evalSystem = snap.evalSystem;
+  prompts.evalUser   = snap.evalUser;
+  prompts.expSystem  = snap.expSystem;
+  prompts.expUser    = snap.expUser;
+  prompts.skill      = snap.skill;
+  // Update editors
+  document.getElementById('promptEvalSystem').value = snap.evalSystem;
+  document.getElementById('promptEvalUser').value   = snap.evalUser;
+  document.getElementById('promptExpSystem').value  = snap.expSystem;
+  document.getElementById('promptExpUser').value    = snap.expUser;
+  document.getElementById('promptSkill').value      = snap.skill;
+  showTab('agents');
+  log(`↺ Prompts restaurados desde EXP_${String(expId).padStart(3,'0')}`, 'ok');
+}
+
+// ════════════════════════════════════════════════
+//  M7: DIFF ENGINE
+// ════════════════════════════════════════════════
+function computeDiff(oldText, newText) {
+  // Word-level diff using LCS
+  const oldWords = oldText.split(/(\s+)/);
+  const newWords = newText.split(/(\s+)/);
+  const n = oldWords.length, m = newWords.length;
+
+  // For large docs, do paragraph-level diff instead
+  if (n > 2000 || m > 2000) {
+    const oldParagraphs = oldText.split(/\n\n+/);
+    const newParagraphs = newText.split(/\n\n+/);
+    let html = '';
+    const maxP = Math.max(oldParagraphs.length, newParagraphs.length);
+    for (let i = 0; i < maxP; i++) {
+      const o = oldParagraphs[i] || '';
+      const nw = newParagraphs[i] || '';
+      if (o === nw) html += '<span class="diff-same">' + escHtml(o) + '\n\n</span>';
+      else {
+        if (o) html += '<span class="diff-del">' + escHtml(o) + '</span>\n\n';
+        if (nw) html += '<span class="diff-add">' + escHtml(nw) + '</span>\n\n';
+      }
+    }
+    return html;
+  }
+
+  // LCS table
+  const dp = Array.from({length:n+1}, () => new Uint16Array(m+1));
+  for (let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--)
+    dp[i][j] = oldWords[i]===newWords[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j],dp[i][j+1]);
+
+  let i=0,j=0, out='';
+  while(i<n || j<m){
+    if(i<n && j<m && oldWords[i]===newWords[j]){
+      out += `<span class="diff-same">${escHtml(oldWords[i])}</span>`; i++;j++;
+    } else if(j<m && (i>=n || dp[i][j+1]>=dp[i+1][j])){
+      out += `<span class="diff-add">${escHtml(newWords[j])}</span>`; j++;
+    } else {
+      out += `<span class="diff-del">${escHtml(oldWords[i])}</span>`; i++;
+    }
+  }
+  return out;
+}
+
+function renderDiffTab() {
+  const wrap = document.getElementById('diffContent');
+  if (!wrap) return;
+  if (!finalText || !docText) { wrap.innerHTML = '<p style="color:var(--t3);font-size:13px">Ejecuta el loop primero.</p>'; return; }
+  wrap.innerHTML = '<div style="color:var(--t3);font-size:12px;margin-bottom:8px">Calculando diff...</div>';
+  setTimeout(() => {
+    const diffHtml = computeDiff(docText, finalText);
+    wrap.innerHTML = `<div class="diff-wrap">${diffHtml}</div>`;
+  }, 50);
+}
+
+function switchDiffView(tab, el) {
+  document.querySelectorAll('.diff-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const pre = document.getElementById('diffPre');
+  const fin = document.getElementById('diffFin');
+  const dif = document.getElementById('diffContent');
+  if(tab==='pre'){pre.style.display='';fin.style.display='none';dif.style.display='none';}
+  else if(tab==='fin'){pre.style.display='none';fin.style.display='';dif.style.display='none';}
+  else{pre.style.display='none';fin.style.display='none';dif.style.display='';renderDiffTab();}
+}
+
+// ════════════════════════════════════════════════
+//  M6: RADAR CHART (baseline vs final per criterion)
+// ════════════════════════════════════════════════
+function drawRadarChart() {
+  const canvas = document.getElementById('radarChart');
+  if (!canvas || !expLog.length) return;
+  const ctx = canvas.getContext('2d');
+  const SIZE = 200;
+  canvas.width = SIZE; canvas.height = SIZE;
+  const cx = SIZE/2, cy = SIZE/2, R = 80;
+  const n = criteria.length;
+  if (n < 2) return;
+
+  ctx.clearRect(0,0,SIZE,SIZE);
+
+  // Grid rings
+  [2,4,6,8,10].forEach(v => {
+    ctx.beginPath();
+    for (let i=0;i<n;i++) {
+      const a = (2*Math.PI*i/n) - Math.PI/2;
+      const r = v/10*R;
+      i===0 ? ctx.moveTo(cx+r*Math.cos(a), cy+r*Math.sin(a))
+             : ctx.lineTo(cx+r*Math.cos(a), cy+r*Math.sin(a));
+    }
+    ctx.closePath();
+    ctx.strokeStyle = v===10 ? '#d1d5db' : '#f3f4f6';
+    ctx.lineWidth = v===10 ? 1.5 : 1;
+    ctx.stroke();
+    if (v===5 || v===10) {
+      ctx.fillStyle='#d1d5db'; ctx.font='8px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(v, cx+4, cy - v/10*R + 3);
+    }
+  });
+
+  // Axis lines
+  for (let i=0;i<n;i++) {
+    const a = (2*Math.PI*i/n) - Math.PI/2;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+R*Math.cos(a), cy+R*Math.sin(a));
+    ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.stroke();
+    // Labels
+    const lr = R+16;
+    const lx = cx+lr*Math.cos(a), ly = cy+lr*Math.sin(a);
+    ctx.fillStyle='#6b7280'; ctx.font='bold 9px sans-serif';
+    ctx.textAlign = lx < cx-5 ? 'right' : lx > cx+5 ? 'left' : 'center';
+    ctx.fillText(criteria[i].id, lx, ly+3);
+  }
+
+  function drawPolygon(scores, color, fill) {
+    ctx.beginPath();
+    criteria.forEach((c,i) => {
+      const v = Math.max(0, Math.min(10, scores[c.id]||0));
+      const a = (2*Math.PI*i/n) - Math.PI/2;
+      const r = v/10*R;
+      i===0 ? ctx.moveTo(cx+r*Math.cos(a), cy+r*Math.sin(a))
+             : ctx.lineTo(cx+r*Math.cos(a), cy+r*Math.sin(a));
+    });
+    ctx.closePath();
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = fill; ctx.fill();
+  }
+
+  const baseScores = expLog[0]?.scores || {};
+  const finalScores = expLog.filter(r=>r.resultado==='CONSERVADO').pop()?.scores || expLog[expLog.length-1]?.scores || {};
+
+  drawPolygon(baseScores, '#94a3b8', 'rgba(148,163,184,0.15)');
+  drawPolygon(finalScores, '#2563eb', 'rgba(37,99,235,0.15)');
+
+  // Dots on final
+  criteria.forEach((c,i) => {
+    const v = Math.max(0, Math.min(10, finalScores[c.id]||0));
+    const a = (2*Math.PI*i/n) - Math.PI/2;
+    ctx.beginPath(); ctx.arc(cx+v/10*R*Math.cos(a), cy+v/10*R*Math.sin(a), 3.5, 0, Math.PI*2);
+    ctx.fillStyle='#2563eb'; ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+  });
+}
+
+function buildRadarLegend() {
+  const el = document.getElementById('radarLegend');
+  if (!el || !expLog.length) return;
+  const baseScores = expLog[0]?.scores || {};
+  const finalEntry = expLog.filter(r=>r.resultado==='CONSERVADO').pop() || expLog[expLog.length-1];
+  const finalScores = finalEntry?.scores || {};
+  el.innerHTML = '<div style="font-size:10px;font-weight:600;color:var(--t3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Criterios</div>' +
+    criteria.map(c => {
+      const base = (baseScores[c.id]||0).toFixed(1);
+      const fin  = (finalScores[c.id]||0).toFixed(1);
+      const delta = (parseFloat(fin)-parseFloat(base));
+      const col = delta>0?'var(--teal)':delta<0?'var(--red)':'var(--t3)';
+      return `<div class="rl-item">
+        <div class="rl-dot" style="background:var(--accent)"></div>
+        <div style="flex:1">
+          <div style="font-weight:500;color:var(--text)">${c.id} ${c.name}</div>
+          <div style="color:var(--t3);font-size:10px">${base} → <strong style="color:${col}">${fin}</strong> <span style="color:${col}">(${delta>=0?'+':''}${delta.toFixed(1)})</span></div>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+// ════════════════════════════════════════════════
+//  M3: SCORE CHART (Canvas, no external lib)
+// ════════════════════════════════════════════════
+function drawScoreChart() {
+  const canvas = document.getElementById('scoreChart');
+  if (!canvas || !expLog.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = Math.min(canvas.parentElement.clientWidth - 40, 900);
+  const H = canvas.height = 200;
+  const PAD = {top:20, right:20, bottom:36, left:42};
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Y axis: 0–10
+  const toX = i => PAD.left + (i / (expLog.length - 1 || 1)) * chartW;
+  const toY = v => PAD.top + chartH - (v / 10) * chartH;
+
+  // Grid lines
+  ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1;
+  [2,4,6,8,10].forEach(v => {
+    ctx.beginPath(); ctx.moveTo(PAD.left, toY(v)); ctx.lineTo(PAD.left+chartW, toY(v)); ctx.stroke();
+    ctx.fillStyle='#9ca3af'; ctx.font='10px DM Sans,sans-serif'; ctx.textAlign='right';
+    ctx.fillText(v, PAD.left-6, toY(v)+3);
+  });
+
+  // Target line
+  const target = parseFloat(document.getElementById('scoreTarget').value) || 8.5;
+  ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(PAD.left, toY(target)); ctx.lineTo(PAD.left+chartW, toY(target)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#d97706'; ctx.font='10px DM Sans,sans-serif'; ctx.textAlign='left';
+  ctx.fillText('objetivo '+target, PAD.left+4, toY(target)-4);
+
+  // Score line
+  ctx.beginPath();
+  expLog.forEach((r,i) => { i===0 ? ctx.moveTo(toX(i),toY(r.score_total)) : ctx.lineTo(toX(i),toY(r.score_total)); });
+  ctx.strokeStyle='#2563eb'; ctx.lineWidth=2; ctx.stroke();
+
+  // Dots
+  expLog.forEach((r,i) => {
+    const x=toX(i), y=toY(r.score_total);
+    ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle = r.resultado==='CONSERVADO' ? '#16a34a' : r.resultado==='REVERTIDO' ? '#dc2626' : '#6366f1';
+    ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+  });
+
+  // X labels (every N experiments)
+  const step = Math.ceil(expLog.length / 12);
+  ctx.fillStyle='#9ca3af'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='center';
+  expLog.forEach((r,i) => {
+    if (i % step === 0 || i === expLog.length-1) ctx.fillText(i, toX(i), H-PAD.bottom+14);
+  });
+
+  // Legend
+  const legend = [{color:'#16a34a',label:'Conservado'},{color:'#dc2626',label:'Revertido'},{color:'#6366f1',label:'Baseline'},{color:'#fbbf24',label:'Objetivo'}];
+  ctx.font='10px DM Sans,sans-serif'; ctx.textAlign='left';
+  legend.forEach((l,i) => {
+    const lx = PAD.left + i*110;
+    ctx.fillStyle=l.color; ctx.fillRect(lx,H-14,8,8);
+    ctx.fillStyle='#6b7280'; ctx.fillText(l.label, lx+11, H-6);
+  });
+}
+
+function exportCSV() {
+  const cids = criteria.map(c=>c.id);
+  const cnames = criteria.map(c=>c.name);
+  let csv = ['exp_id','score_total',...cnames,'hipotesis','seccion','resultado','hora','busqueda','fuentes'].join(',') + '\n';
+  csv += expLog.map(r=>['EXP_'+String(r.exp_id).padStart(3,'0'), r.score_total.toFixed(2), ...cids.map(id=>r.scores[id]||''), `"${(r.hipotesis||'').replace(/"/g,"'")}"`, `"${(r.seccion||'').replace(/"/g,"'")}"`, r.resultado, r.ts, `"${(r.searchQuery||'').replace(/"/g,"'")}"`, `"${(r.fuentes||[]).join(' | ').replace(/"/g,"'").slice(0,200)}"`].join(',')).join('\n');
+  const stem = (docName||'documento').replace(/\.[^.]+$/,'');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${stem}_experimentos.csv`;a.click();
+}
+function exportMD() {
+  const cids = criteria.map(c=>c.id);
+  let md = `# AutoResearch — Tabla de experimentos\n\n`;
+  md += `**Documento:** ${docName} | **Baseline:** ${baselineScore.toFixed(2)}/10 | **Score final:** ${currentScore.toFixed(2)}/10 | **Objetivo:** ${document.getElementById('scoreTarget').value}/10\n\n`;
+  md += '| Exp | Score | ' + criteria.map(c=>c.id+' '+c.name).join(' | ') + ' | Hipótesis | Resultado |\n';
+  md += '|-----|-------| ' + criteria.map(()=>'---').join(' | ') + ' |-----------|----------|\n';
+  md += expLog.map(r=>`| EXP_${String(r.exp_id).padStart(3,'0')} | ${r.score_total.toFixed(2)} | ${cids.map(id=>r.scores[id]||'-').join(' | ')} | ${r.hipotesis} | ${r.resultado} |`).join('\n');
+  const stem = (docName||'documento').replace(/\.[^.]+$/,'');
+  const blob=new Blob([md],{type:'text/markdown'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${stem}_resultados.md`;a.click();
+}
+</script>
+</body>
+</html>
