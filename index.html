@@ -1745,9 +1745,17 @@ async function evaluate(text) {
     .replace('{DOCUMENTO}', text.slice(0, CHUNK_LIMIT));
   const raw = await callGPT(prompts.evalSystem, userPrompt, 600);
   const data = parseJSON(raw);
+  // Clamp scores to [1,10] — guard against model using wrong scale
+  if (data.scores) {
+    Object.keys(data.scores).forEach(k => {
+      let v = parseFloat(data.scores[k]) || 0;
+      if (v > 10) v = v / 10;
+      data.scores[k] = Math.min(10, Math.max(1, Math.round(v * 10) / 10));
+    });
+  }
   let total = 0;
   criteria.forEach(c => { total += (data.scores[c.id]||0) * c.weight/100; });
-  data.score_total = Math.round(total*100)/100;
+  data.score_total = Math.min(10, Math.round(total*100)/100);
   return data;
 }
 
@@ -1756,47 +1764,77 @@ async function evaluateChunked(text, critStr) {
   // Split on markdown headings or every ~5000 chars
   let chunks = text.split(/\n(?=#{1,3} )/).filter(c => c.trim().length > 100);
   if (chunks.length < 2) {
-    // Fixed-size chunking
     chunks = [];
     for (let i = 0; i < text.length; i += 5000) chunks.push(text.slice(i, i+5500));
   }
-  // Max 4 chunks to control cost
   if (chunks.length > 4) {
     const step = Math.floor(chunks.length / 4);
     chunks = [chunks[0], chunks[step], chunks[step*2], chunks[chunks.length-1]];
   }
   log(`  📄 Documento largo: evaluando ${chunks.length} secciones...`, 'info');
 
-  const chunkPromise = chunks.map(async (chunk, idx) => {
-    const p = `Evalúa este fragmento (sección ${idx+1}/${chunks.length}) del documento con la rúbrica dada.
-Responde SOLO JSON: {"scores":{"C1":X,...},"notas":"observación breve"}
-CRITERIOS:\n${critStr}\nFRAGMENTO:\n${chunk.slice(0,4000)}`;
-    const raw = await callGPT('Eres evaluador experto. SOLO JSON sin markdown.', p, 400);
-    return parseJSON(raw);
-  });
+  // Evaluate each chunk sequentially to avoid rate limits
+  const results = [];
+  for (let idx = 0; idx < chunks.length; idx++) {
+    const chunk = chunks[idx];
+    // Use the same full evalUser prompt for consistency — just swap the document section
+    const critList = criteria.map(c => `${c.id} ${c.name} (peso ${c.weight}%): ${c.desc}`).join('\n');
+    const p = `Evalúa este fragmento del documento. Puntúa cada criterio de 1.0 a 10.0 (NUNCA más de 10).
+Fragmento ${idx+1} de ${chunks.length}.
 
-  const results = await Promise.all(chunkPromise);
+CRITERIOS:\n${critList}
 
-  // Aggregate: average scores across chunks, weighted by chunk length
+Responde SOLO JSON:
+{"scores":{"C1":X.X,"C2":X.X,...},"notas":"observación breve"}
+
+IMPORTANTE: Los scores van de 1.0 a 10.0. Nunca uses valores mayores de 10.
+
+FRAGMENTO:
+${chunk.slice(0, 4000)}`;
+    try {
+      const raw = await callGPT('Eres evaluador experto. Scores de 1.0 a 10.0 máximo. SOLO JSON sin markdown.', p, 400);
+      const parsed = parseJSON(raw);
+      // Clamp all scores to [1, 10] to guard against model returning wrong scale
+      if (parsed.scores) {
+        Object.keys(parsed.scores).forEach(k => {
+          let v = parseFloat(parsed.scores[k]) || 0;
+          // If model returned 0-100 scale, convert to 0-10
+          if (v > 10) v = v / 10;
+          parsed.scores[k] = Math.min(10, Math.max(1, Math.round(v * 10) / 10));
+        });
+      }
+      results.push(parsed);
+    } catch(e) {
+      log(`  ⚠️ Error evaluando sección ${idx+1}: ${e.message}`, 'warn');
+      // Push neutral scores so we don't break aggregation
+      const neutral = {scores: {}};
+      criteria.forEach(c => { neutral.scores[c.id] = 5; });
+      results.push(neutral);
+    }
+  }
+
+  // Aggregate: weighted average by chunk length
   const weights = chunks.map(c => c.length);
-  const totalW = weights.reduce((a,b)=>a+b,0);
+  const totalW = weights.reduce((a,b) => a+b, 0);
   const merged = {scores:{}, criterio_mas_bajo:'', razon_mas_bajo:'Evaluación agregada de múltiples secciones'};
 
   criteria.forEach(c => {
     const wavg = results.reduce((sum, r, i) =>
-      sum + (r.scores?.[c.id]||0) * weights[i], 0) / totalW;
-    merged.scores[c.id] = Math.round(wavg * 10) / 10;
+      sum + (r.scores?.[c.id] || 5) * weights[i], 0) / totalW;
+    // Clamp final average too
+    merged.scores[c.id] = Math.min(10, Math.max(1, Math.round(wavg * 10) / 10));
   });
 
+  // Weighted score_total (weights are criterion weights, not chunk weights)
   let total = 0;
-  criteria.forEach(c => { total += (merged.scores[c.id]||0) * c.weight/100; });
-  merged.score_total = Math.round(total*100)/100;
+  criteria.forEach(c => { total += merged.scores[c.id] * c.weight / 100; });
+  merged.score_total = Math.min(10, Math.round(total * 100) / 100);
 
-  // Find weakest
-  const weakest = criteria.reduce((min,c) =>
+  const weakest = criteria.reduce((min, c) =>
     (merged.scores[c.id]||0) < (merged.scores[min.id]||0) ? c : min, criteria[0]);
   merged.criterio_mas_bajo = weakest.id;
 
+  log(`  📊 Scores por sección agregados. Rango: ${Math.min(...criteria.map(c=>merged.scores[c.id])).toFixed(1)}–${Math.max(...criteria.map(c=>merged.scores[c.id])).toFixed(1)}`, 'info');
   return merged;
 }
 
@@ -1829,6 +1867,14 @@ ${text.slice(0, 6000)}`;
   const partial = parseJSON(raw);
 
   // Merge: start from previous scores, apply any updated ones
+  // Clamp partial scores too
+  if (partial.scores) {
+    Object.keys(partial.scores).forEach(k => {
+      let v = parseFloat(partial.scores[k]) || 0;
+      if (v > 10) v = v / 10;
+      partial.scores[k] = Math.min(10, Math.max(1, Math.round(v * 10) / 10));
+    });
+  }
   const mergedScores = {...prevScores, ...partial.scores};
   let total = 0;
   criteria.forEach(c => { total += (mergedScores[c.id]||0) * c.weight/100; });
